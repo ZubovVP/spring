@@ -1,7 +1,10 @@
 package ru.zubov.springbean.annotation;
 
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import ru.zubov.springbean.Action;
 
 /**
@@ -11,14 +14,12 @@ import ru.zubov.springbean.Action;
  * Version: $.
  * Date: 02.08.2021.
  */
+@Configuration
+@ComponentScan("ru.zubov.springbean.annotation")
 public class Test {
     public static void main(String[] args) {
-        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
-                "app-context-annotation.xml"
-        );
-
-        Action hello = context.getBean("hello", HelloWorld.class);
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        Action hello = context.getBean("helloAnnotation", HelloWorld.class);
         hello.action();
     }
-
 }

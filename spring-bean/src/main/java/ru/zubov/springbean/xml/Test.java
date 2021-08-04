@@ -1,6 +1,7 @@
 package ru.zubov.springbean.xml;
 
 
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import ru.zubov.springbean.Action;
 
@@ -13,11 +14,10 @@ import ru.zubov.springbean.Action;
  */
 public class Test {
     public static void main(String[] args) {
-        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
+        ApplicationContext context = new ClassPathXmlApplicationContext(
                 "app-context.xml"
         );
-        Action hello = context.getBean("hello", HelloWorld.class);
+        Action hello = context.getBean("helloXML", HelloWorld.class);
         hello.action();
     }
-
 }

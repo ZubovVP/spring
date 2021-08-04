@@ -10,7 +10,7 @@ import ru.zubov.springbean.Action;
  * Version: $.
  * Date: 02.08.2021.
  */
-@Component("hello")
+@Component("helloAnnotation")
 public class HelloWorld implements Action {
 
     @Override

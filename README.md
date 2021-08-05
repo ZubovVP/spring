@@ -7,7 +7,8 @@
 1. [Модули Spring](#Модули-Spring)
 2. [Введение в IoC и DI в Spring](#Введение-в-IoC-и-DI-в-Spring)
 3. [Сведения о конфигурации Spring](#Сведения-о-конфигурации-Spring)
-4. [Жизненный цикл бинов](#Жизненный-цикл-бинов)
+4. [Внедрение зависимостей](#Внедрение-зависимостей)
+5. [Жизненный цикл бинов](#Жизненный-цикл-бинов)
 
 
 ## Что такое Spring?
@@ -150,6 +151,35 @@ ApplicationContext context = new ClassPathXmlApplicationContext("app-context.xml
         hello.action();
 ```` 
  При запуске данного приложения мы увидим информацию на консоле. С полной реализацией данного принципа можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/springbean/xml)
+Для получение несколько бинов одного класса нужно будет в xml файле их указать как показано ниже (id  бина должны быть различные)
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="First" class="ru.zubov.springbean.xml.HelloWorld"/>
+    <bean id="Second" class="ru.zubov.springbean.xml.HelloWorld"/>
+</beans>
+````
+Тогда в нашем контейнере создадутся два бина одного класса, которые можно будет получить от из ApplicationContext использую команду getBean() с указанием id бина.
+````java
+public class Test {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context.xml"
+        );
+        Action first = context.getBean("First", HelloWorld.class);
+        hello.action();
+        Action second = context.getBean("Second", HelloWorld.class);
+        hello.action();
+    }
+}
+````
 ### Конфигурация бинов с помощью аннотации
 При конфигурировании бинов с помощью аннотации нам не нужно создавать конфигурационный файл, всё указывается непосредственно в классах.
 ````java
@@ -176,6 +206,114 @@ public class Test {
 }
 ````
 Аннотация @Configuration("helloAnnotation") говорит Spring, что объект является источником определений bean-компонентов, а аннотация @ComponentScan("ru.zubov.springbean.annotation") говорит Spring где вести поиск бинов, которые необходимо будет создать.
-Т.к. мы конфигурируем с использование аннотаций, соответственно нам необъходимо создавать объект AnnotationConfigApplicationContext и передать ему в конструктор класс, который помечен аннотацией @Configuration.
+Т.к. мы конфигурируем с использованием аннотаций, соответственно нам необходимо создавать объект AnnotationConfigApplicationContext и передать ему в конструктор класс, который помечен аннотацией @Configuration.
 
-При запуске такого приложения, мы увидим анологичный результат, что и в предыдущем. С полной реализацией данного принципа можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/springbean/annotation)
+При запуске такого приложения, мы увидим аналогичный результат, что и в предыдущем. С полной реализацией данного принципа можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/springbean/annotation)
+
+Для получение несколько бинов одного класса нужно будет в конфигурационном классе создать с метод с указанием аннотации @Bean.
+````java
+@Configuration
+@ComponentScan("ru.zubov.springbean.annotation")
+public class Test {
+    @Bean("First")
+    public HelloWorld createHello1(){
+        return new HelloWorld();
+    }
+
+    @Bean("Second")
+    public HelloWorld createHello2(){
+        return new HelloWorld();
+    }
+
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        Action hello = context.getBean("helloAnnotation", HelloWorld.class);
+        hello.action();
+    }
+}
+````
+Получение данных бинов будет аннологичен, как и при созданни нескольких бинов через xml
+````java
+@Configuration
+@ComponentScan("ru.zubov.springbean.annotation")
+public class Test {
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        Action first = context.getBean("First", HelloWorld.class);
+        first.action();
+        Action second = context.getBean("Second", HelloWorld.class);
+        second.action();
+    }
+}
+````
+## Внедрение зависимостей
+Существует несколько способов внедрения зависимостей в бины, внедрять зависимости можно через конструктор или же через сеттер.  
+Предположим у нас есть два класса:
+````java
+public class Child {
+    private String name;
+} 
+````
+У класса Child есть всего одно поле - name.
+````java
+public class Parent {
+    private String name;
+    private int age;
+    private Child child;
+}
+````
+У класса Parent есть 3 поля.
+### Внедрение зависимостей с помощью Xml файла
+
+### Внедрение зависимостей с помощью аннотаций
+Существует несколько аннотаций, которые позволяют программисту объяснить Spring как внедрять зависимости:
+* использование аннотации @Value  
+
+При использовании аннотации @Value программист может указать какое-либо конкретное значение, либо указать значение из файла имеющее расширение properties. Ниже показано как это можно сделать.
+Для того чтобы внедрить зависимость через сеттер, то достаточно установить аннотацию над полем или же над сеттером
+````java
+@Component
+public class Child {
+    @Value("Tom")
+    private String name;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+````
+Как показано выше, при создании данного бина, Spring установит полю name значение Tom. При присваивании данного значения Spring будет вызывать сеттер и указывать ему значение. 
+````java
+@Component
+public class Child {
+    private String name;
+
+    public Child(@Value("${child.name}") String name) {
+        this.name = name;
+    }
+}
+````
+При таком коде, Spring будет получать значение из файла имеющее расширение properties. ВАЖНО! В таком случае нужно указать в конфигурационном классе аннотацию @PropertySource с указанием месторасположением данного файла (Пример @PropertySource ("classpath:/application.properties")).
+````java
+@Configuration
+@ComponentScan("ru.zubov.di.annotation")
+@PropertySource("classpath:/application.properties")
+public class Test {
+
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+                Child child = context.getBean(Child.class);
+    }
+}
+````
+* использование аннотации @Autowired
+Использование данной аннотации Spring сам будет искать из уже созданных бинов, какой бин туда можно подставить, в случае если ни одного подходящего нет или же их больше чем 1, то выскочит exception.
+
+* использование аннотации @Inject  
+
+
+![Alt-текст](https://wiki.wolf-a.ru/images/f/f2/SpringBeanLifeCycle.png )

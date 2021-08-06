@@ -1,10 +1,4 @@
-package ru.zubov.di.annotation;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
+package ru.zubov.di.xml;
 
 /**
  * Created by Intellij IDEA.
@@ -13,15 +7,14 @@ import org.springframework.stereotype.Component;
  * Version: $.
  * Date: 05.08.2021.
  */
-@Component
 public class Parent {
-    @Value("Duke")
     private String name;
-    @Value("35")
     private int age;
-    @Autowired
-    @Qualifier("child_1")
     private Child child;
+
+    public Parent(Child child) {
+        this.child = child;
+    }
 
     public String getName() {
         return name;

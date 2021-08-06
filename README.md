@@ -12,9 +12,9 @@
 
 
 ## Что такое Spring?
-Spring - это фрэймворк, который предствляет из себя контейнер внедрения зависимостей с несколькими модулями.
-Модули легко подключаются к проекту в случае необходимости.
-Spring позволяет вам быстрее и удобней создавать Java-приложения. 
+Основная задача Spring - это упростить и сократить работу программиста при создании Java-приложения. 
+Spring - это фрэймворк, который представляет контейнер внедрения зависимостей с несколькими модулями.
+В случае необходимости модули можно легко подключить к проекту.
 
 ## Модули Spring
 Модули — это наборы инструментов.
@@ -43,9 +43,9 @@ Spring позволяет вам быстрее и удобней создава
 ## Введение в IoC и DI в Spring
 
 #### Inversion of Control (инверсия управления)
-Одна из ключевой особенностью приложения, написанного на Spring, состоит в том что большую часть объектов создаем не программист, а сам Spring.
+Одна из ключевой особенностью приложения написанного на Spring, заключается в том, что большую часть объектов создаёт не программист, а сам Spring.
 Программист лишь объясняет Spring (с помощью аннотаций либо в конфигурационном XML), какие именно объекты он должен создать самостоятельно.
-Spring управляет созданием объектов и потому его контейнер называется IoC-контейнер.
+Spring управляет жизненным циклом объектов и потому его контейнер называется IoC-контейнер.
 IoC расшифровывается как Inversion of Control [(IoC)](https://ru.wikipedia.org/wiki/Инверсия_управления). 
 А объекты, которые создаются контейнером и находятся под его управлением, называются бинами.
 
@@ -56,6 +56,7 @@ IoC расшифровывается как Inversion of Control [(IoC)](https:/
 ## Сведения о конфигурации Spring
 Как говорилось ранее, программист может объяснить Spring какие именно бины нужно создать с помощью конфигурационного файла или же с помощью аннотаций.  
 ApplicationContext — это главный интерфейс в Spring-приложении, который предоставляет информацию о конфигурации приложения. В зависимости от способа конфигурации приложения, будет создаваться различный объект интерфейса ApplicationContext.  
+Как уже сказано, контейнеру для создания бинов требуется конгфигурация, так что конструктор контейнера принимает аргумент. Существуют два подкласса ApplicationContext: ClassPathXmlApplicationContext берет конфигурацию из XML-файла, а AnnotationConfigApplicationContext – из аннотаций.
 У Spring есть 4 способа конфигурации:
 
 * Xml конфигурация — ClassPathXmlApplicationContext(”context.xml”);
@@ -63,21 +64,10 @@ ApplicationContext — это главный интерфейс в Spring-при
 * Конфигурация через аннотации с указанием пакета для сканирования — AnnotationConfigApplicationContext(”package.name”);
 * JavaConfig — конфигурация через аннотации с указанием класса (или массива классов) помеченного аннотацией @Configuration — AnnotationConfigApplicationContext(JavaConfig.class).
 
-
 В качестве примера ниже будет показано конфигурация бинов с помощью Xml файла и использования аннотации (JavaConfig).
 
 Прежде чем создавать приложение, необходимо добавить зависимостей (в зависимости от инструмента сборки, процесс добавления зависимостей может различаться), ниже показаны зависимости, которые необходимо добавить при использовании Maven (версии зависимостей могут быть другими):
  ````xml
-<dependency>
-   <groupId>org.springframework</groupId>
-    <artifactId>spring-core</artifactId>
-    <version>5.2.4.RELEASE</version>
-</dependency>
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-beans</artifactId>
-    <version>5.2.4.RELEASE</version>
-</dependency>
 <dependency>
     <groupId>org.springframework</groupId>
     <artifactId>spring-context</artifactId>
@@ -113,7 +103,7 @@ public class HelloWorld implements Action {
         http://www.springframework.org/schema/context/spring-context.xsd">
 </beans>
 ````
-Для того чтобы Spring понимал какой бин необходимо создать, то мы должны добавить информацию о классе в этот конфигурационный файл
+Для того чтобы Spring понимал какой бин необходимо создать, нам необходимо добавить информацию о классе в этот конфигурационный файл
 ````xml
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -150,7 +140,7 @@ ApplicationContext context = new ClassPathXmlApplicationContext("app-context.xml
         Action hello = context.getBean("helloXML", HelloWorld.class);
         hello.action();
 ```` 
- При запуске данного приложения мы увидим информацию на консоле. С полной реализацией данного принципа можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/springbean/xml)
+При запуске данного приложения мы увидим информацию в консоле. С полной реализацией данного принципа можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/springbean/xml)
 Для получение несколько бинов одного класса нужно будет в xml файле их указать как показано ниже (id  бина должны быть различные)
 ````xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -192,8 +182,8 @@ public class HelloWorld implements Action {
     }
 }
 ````
-Можно увидеть что появилась аннотация @Component("helloAnnotation"), которая говорит Spring что необходимо будет создать бин данного класса и присвоить ему id = "helloAnnotation".
-В отличие от конфигурировании xml класс тест тоже приобретает некоторые отличия:
+Появилась аннотация @Component("helloAnnotation"), которая говорит Spring что необходимо будет создать бин данного класса и присвоить ему id = "helloAnnotation".
+В отличие от конфигурировании xml класс Test тоже приобретает некоторые отличия:
 ````java
 @Configuration
 @ComponentScan("ru.zubov.springbean.annotation")
@@ -246,8 +236,13 @@ public class Test {
     }
 }
 ````
+Разница между аннотациями @Bean и @Component в том, что @Bean более гибкая аннотация, ею мы аннотируем метод, а не класс:
+
+* С помощью @Bean можно конфигурировать бины для тех классов, код которых вы не можете редактировать, например, классы из чужих библиотек.
+* С помощью @Bean можно также конфигурировать классы, создаваемые фабричными методами.
 ## Внедрение зависимостей
-Существует несколько способов внедрения зависимостей в бины, внедрять зависимости можно через конструктор или же через сеттер.  
+Dependency Injection (внедрение зависимостей) – ключевой шаблон проектирования в Spring. Мы говорим фреймворку создать за нас бины (иначе говоря – объекты) и внедрить их в другие бины. И фреймворк это делает.
+Существует несколько способов внедрения зависимостей в бины, внедрять зависимости можно через конструктор(constructor-based injection) или же через сеттер(setter-based injection).  
 Предположим у нас есть два класса:
 ````java
 public class Child {
@@ -263,14 +258,11 @@ public class Parent {
 }
 ````
 У класса Parent есть 3 поля.
-### Внедрение зависимостей с помощью Xml файла
-
 ### Внедрение зависимостей с помощью аннотаций
 Существует несколько аннотаций, которые позволяют программисту объяснить Spring как внедрять зависимости:
 * использование аннотации @Value  
-
-При использовании аннотации @Value программист может указать какое-либо конкретное значение, либо указать значение из файла имеющее расширение properties. Ниже показано как это можно сделать.
-Для того чтобы внедрить зависимость через сеттер, то достаточно установить аннотацию над полем или же над сеттером
+При использовании аннотации @Value программист может указать какое-либо конкретное значение, либо указать значение из файла имеющее расширение properties.
+Для того чтобы внедрить зависимость через сеттер, достаточно установить аннотацию над полем или же над сеттером
 ````java
 @Component
 public class Child {
@@ -287,6 +279,7 @@ public class Child {
 }
 ````
 Как показано выше, при создании данного бина, Spring установит полю name значение Tom. При присваивании данного значения Spring будет вызывать сеттер и указывать ему значение. 
+Аннотация @Component говорит фреймворку превратить класс в бин. При запуске Spring создаст экземпляр класса Child. Этот экземпляр будет синглтоном в нашем случае. Мы сможем его впоследствии получить из контекста приложения.
 ````java
 @Component
 public class Child {
@@ -311,9 +304,200 @@ public class Test {
 }
 ````
 * использование аннотации @Autowired
-Использование данной аннотации Spring сам будет искать из уже созданных бинов, какой бин туда можно подставить, в случае если ни одного подходящего нет или же их больше чем 1, то выскочит exception.
+Использование данной аннотации Spring сам будет искать в контейнере из уже созданных бинов, какой бин туда можно подставить.
+Возьмём класс Chil и не будем указывать аннотацию @Component, тем самым Spring не создаст самостоятельно бин данного класса.
+````java
+public class Child {
+    private String name;
 
+    public Child(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+````
+Возьмём класс Parent в котором будет использоватся аннотация @Autowired.
+````java
+@Component
+public class Parent {
+    @Value("Tom")
+    private String name;
+    @Value("20")
+    private int age;
+    @Autowired
+    private final Child child;
+
+  
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public Child getChild() {
+        return child;
+    }
+}
+````
+Создадим в конфигурационный класс.
+````java
+@Configuration
+@ComponentScan("ru.zubov.di.annotation")
+@PropertySource("classpath:/application.properties")
+public class Test {
+
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        Parent parent = context.getBean(Parent.class);
+    }
+}
+````
+При запуске такого приложения мы получим Exception, т.к. Spring не найдёт бин, который можно будет подставить в поле child классу Parent.
+Для решения данной проблемы мы в конфигурационном файле добавим бин, который Spring сможет использовать.
+````java
+@Configuration
+@ComponentScan("ru.zubov.di.annotation")
+@PropertySource("classpath:/application.properties")
+public class Test {
+    @Bean("child")
+    public Child createChild(){
+        return new Child("Duke");
+    }
+
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        Parent parent = context.getBean(Parent.class);
+    }
+}
+````
+Теперь Spring сможет найти бин Child и добавить его в поле child класса Parent.
+
+В случае когда есть несколько бинов, которые подходят для внедрения в данное поле, то необходимо использовать уточнение, а именно аннотацию @Qualifier(), внутри которой указывается либо конкретный класс, либо id бина.
+Допустим у нас в конфигурационном классе будут созданы два бина: 
+````java
+@Configuration
+@ComponentScan("ru.zubov.di.annotation")
+@PropertySource("classpath:/application.properties")
+public class Test {
+    @Bean("child_1")
+    public Child createChild_1(){
+        return new Child("Duke");
+    }
+    @Bean("child_2")
+    public Child createChild_2(){
+        return new Child("Alex");
+    }
+
+
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        Parent parent = context.getBean(Parent.class);
+    }
+}
+````
+Класс Parent остаётся без изменения, тогда при запуске такого приложения у нас появится Exception, т.к. Spring не знает какой из бинов добавить в поле child класса Parent.
+Для решения данной проблемы нам необходимо внести уточнение в классе Parent.
+````java
+@Component
+public class Parent {
+    @Value("Tom")
+    private String name;
+    @Value("20")
+    private int age;
+    @Autowired
+    @Qualifier("child_1")
+    private final Child child;
+
+  
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public Child getChild() {
+        return child;
+    }
+}
+````
+Над полем child мы указали id бина, который необъодимо будет туда подставить.
+В данном случае Spring будет понимать какой бин использовать при создании бина Parent.  Подробно с кодом можно ознакомится [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/di/annotation)
+ 
 * использование аннотации @Inject  
+Аннотация @Inject является более новой версией аннотации @Autowired, принцип работы аналогичен.
+### Внедрение зависимостей с помощью Xml файла
+А теперь сконфигурируем все то же самое с помощью XML. Создадим конфигурационный файл:
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
 
-
+    <bean id="child" class="ru.zubov.di.xml.Child" >
+        <property name="name" value="Duke" />
+    </bean>
+    <bean class="ru.zubov.di.xml.Parent">
+        <constructor-arg ref="child" />
+        <property name="name" value="Alex"/>
+        <property name="age" value="35"/>
+    </bean>
+</beans>
+````
+Строка <bean id="child" class="ru.zubov.di.xml.Child"> говорит о том что необходимо будет Spring создать бин класса Child.
+Строка <property name="name" value="Duke" /> говорит о том что нужно присвоить полю name значение Duke. Значение будет присваиваться через сеттер(setter-based injection) (аналог @Value).
+````xml
+    <bean class="ru.zubov.di.xml.Parent">
+        <constructor-arg ref="child" />
+        <property name="name" value="Alex"/>
+        <property name="age" value="35"/>
+    </bean>
+````
+В данном фрагменте кода Spring создаст бин класса Parent, в котором ранее созданный бин Child будет внедряться в новый бин Child через конструктор (constructor-based injection), а два других поля будут заполнены Spring через сеттер(setter-based injection).
+Для получения данного бина необходимо будет создать ApplicationContext с указанием правильного конфигурационного файла:
+````java
+public class Test {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "application-context.xml"
+        );
+        Parent parent = context.getBean(Parent.class);
+        System.out.println(parent);
+    }
+}
+````
+Получать бин можно через обращение через id бина, либо через класс, в случае если обращение через было создано 2 или более подобных бинов, то будет получен Exception (рекомендую всегда обращаться через id и в xml файле всегда присваивать id).
+Полный программный код можно посмотреть [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/di/xml)
+## Жизненный цикл бинов
+                                         
 ![Alt-текст](https://wiki.wolf-a.ru/images/f/f2/SpringBeanLifeCycle.png )

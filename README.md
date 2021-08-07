@@ -499,5 +499,98 @@ public class Test {
 Получать бин можно через обращение через id бина, либо через класс, в случае если обращение через было создано 2 или более подобных бинов, то будет получен Exception (рекомендую всегда обращаться через id и в xml файле всегда присваивать id).
 Полный программный код можно посмотреть [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/di/xml)
 ## Жизненный цикл бинов
-                                         
+При создании бина, каждый бин проходит свой жизненный цикл:
+1) После запуска Spring приложения происходит создания контейнера (ApplicationContext);
+2) Создание всех бинов из конфигурационного файла;
+3) Внедрение зависимостей во все созданные бины (Dependency Injection);
+4) Вызов init-method у бина.
+
+Бин готов к использованию.
+После завершения Spring приложения, Spring совершит следующие действия:
+1) Вызов destroy-method у бина;
+2) Остановка Spring приложения.
+
+На изображении представлен представлен жизненный цикл бинов.                                          
 ![Alt-текст](https://wiki.wolf-a.ru/images/f/f2/SpringBeanLifeCycle.png )
+### Init-method
+Init-method - это метод, который запускается в ходе инициализацию бина. В этом методе может быть любая логика, но обычно данный метод используется для подключения к БД или инициализации ресурсов.  
+### Destroy-method
+Destroy-method - это метод, который запускается в ходе уничтожения бина. Данный метод обычно используют для закрытия потоков ввода-вывода или для отключения от БД.
+### Тонкости выполнение init() и destroy() методов
+У init() и destroy() методов может быть любой модификатор доступа (public, protected, private).\
+Название данных методов может быть любым.\
+На вход никакие аргументы методы не должны принимать.\
+Тип возвращаемого значения может быть любой, но мы не сможем его получить, поэтому рекомендуется использовать void.\
+Для бинов со scope "prototype" Spring не вызывает destroy-method.
+### Выполнение init() и destroy() методов
+#### Выполнение через xml конфиурацию
+При создании бинов в конфигурационном xml файле, определение init-method и destroy-method будет указыватся следующим способом:
+````xml
+<bean id="person" 
+class="ru.zubov.lifecycle.xml.Person"
+ init-method = "init"
+ destroy-method = "destroy">
+    </bean>
+````
+Методы init() и destroy() должны быть созданы в классе бина (Child), Spring возьмёт на себя вызовы этих методов в павильный момент жизненного цикла.
+Сам класс Person будет выглядить следующим образом :
+````java
+public class Person {
+    public void init(){
+        System.out.println("Start init-method");
+    }
+
+    public void destroy(){
+        System.out.println("Start destroy-method");
+    }
+}
+````
+Для тестирования init() и destroy() методов необходимо будет создать контейнер (ClassPathXmlApplicationContext) и его закрыть:
+````java
+public class Test {
+
+    public static void main(String[] args) {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("app-contextForLifecycle.xml");
+        context.close();
+    }
+}
+````
+В результате создания и закрытия контейнера, на экран появиться информация о старте выполнения init() и destroy() методов. С полным программным кодом можно ознакомится [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/lifecycle/xml)
+####Выполнение через аннотацию
+Сначала необходимо добавить следующую зависимость в проект:
+````xml
+<dependency>
+    <groupId>javax.annotation</groupId>
+    <artifactId>javax.annotation-api</artifactId>
+    <version>1.3.2</version>
+</dependency>
+````
+Init() и destroy() методы в классе отмечаются аннотациями непосредственно в самом классе:\
+````java
+@Component
+public class Person {
+    @PostConstruct
+    public void init(){
+        System.out.println("Start init-method");
+    }
+
+    @PreDestroy
+    public void destroy(){
+        System.out.println("Start destroy-method");
+    }
+}
+````
+Init-method помечается аннотацией @PostConstruct.
+Destroy-method помечается аннотацией @PreDestroy.
+Для тестирования init() и destroy() методов необходимо будет создать контейнер (ClassPathXmlApplicationContext) и его закрыть:
+````java
+@Configuration
+@ComponentScan("ru.zubov.lifecycle.annotation")
+public class Test {
+    public static void main(String[] args) {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        context.close();
+    }
+}
+````
+В ходе запуска данной программы, результат будет аналогичен, что и при конфигурировании через xml файл. С полным программным кодом можно ознакомится [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/lifecycle/annotation)

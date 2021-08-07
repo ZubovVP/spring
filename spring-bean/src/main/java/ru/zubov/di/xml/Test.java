@@ -3,7 +3,6 @@ package ru.zubov.di.xml;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import ru.zubov.di.Action;
 
 /**
  * Created by Intellij IDEA.
@@ -15,9 +14,9 @@ import ru.zubov.di.Action;
 public class Test {
     public static void main(String[] args) {
         ApplicationContext context = new ClassPathXmlApplicationContext(
-                "app-context.xml"
+                "application-context.xml"
         );
-        Action hello = context.getBean("helloXML", HelloWorld.class);
-        hello.action();
+        Parent parent = context.getBean(Parent.class);
+        System.out.println(parent);
     }
 }

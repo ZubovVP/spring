@@ -15,13 +15,21 @@ import javax.annotation.PreDestroy;
  */
 @Component
 public class Person {
+    private Person() {
+    }
+
+    public static Person createPerson() {
+        System.out.println("Create Person");
+        return new Person();
+    }
+
     @PostConstruct
-    public void init(){
+    public void init() {
         System.out.println("Start init-method");
     }
 
     @PreDestroy
-    public void destroy(){
+    public void destroy() {
         System.out.println("Start destroy-method");
     }
 }

@@ -8,13 +8,16 @@
 2. [Введение в IoC и DI в Spring](#Введение-в-IoC-и-DI-в-Spring)
 3. [Сведения о конфигурации Spring](#Сведения-о-конфигурации-Spring)
 4. [Внедрение зависимостей](#Внедрение-зависимостей)
-5. [Жизненный цикл бинов](#Жизненный-цикл-бинов)
-6. [Init метод](#Init-метод)
-7. [Destroy метод](#Destroy-метод)
-8. [Тонкости выполнение init() и destroy() методов](#Тонкости-выполнение-init()-и-destroy()-методов)
-9. [Выполнение init() и destroy() методов через xml конфигурацию](#Выполнение-init()-и-destroy()-методов-через-xml-конфигурацию)
-10. [Выполнение init() и destroy() методов через аннотацию](#Выполнение-init()-и-destroy()-методов-через-аннотацию)
-11. [Фабричный метод (Factory method)](#Фабричный-метод-(Factory-method))
+5. [Область видимости бинов](#Область-видимости-бинов)
+6. [Добавление scope с помощью Xml файла](#Добавление-scope-с-помощью-Xml-файла)
+7. [Добавление scope через аннотации](#Добавление-scope-через-аннотации)
+8. [Жизненный цикл бинов](#Жизненный-цикл-бинов)
+9. [Init метод](#Init-метод)
+10. [Destroy метод](#Destroy-метод)
+11. [Тонкости выполнение init() и destroy() методов](#Тонкости-выполнение-init()-и-destroy()-методов)
+12. [Выполнение init() и destroy() методов через xml конфигурацию](#Выполнение-init()-и-destroy()-методов-через-xml-конфигурацию)
+13. [Выполнение init() и destroy() методов через аннотацию](#Выполнение-init()-и-destroy()-методов-через-аннотацию)
+14. [Фабричный метод (Factory method)](#Фабричный-метод-(Factory-method))
 
 
 
@@ -507,6 +510,151 @@ public class Test {
 ````
 Получать бин можно через обращение через id бина, либо через класс, в случае если обращение через было создано 2 или более подобных бинов, то будет получен Exception (рекомендую всегда обращаться через id и в xml файле всегда присваивать id).
 Полный программный код можно посмотреть [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/di/xml)
+## Область видимости бинов
+Область видимости бинов (Scope) - используется для определения количества создания экземпляров класса. Scope говорит Spring как нужно будет создавать бины. Существуют разные виды scope:
+* **Singleton**\
+Данный scope задаётся по умолчанию. При всех вызовах метода getBean() возвращается ссылка на один и тот же (единственный) объект.
+* **Prototype**\
+Данный scope при всех вызовах метода getBean() возвращается каждый раз ссылка на новый объект.
+* **Request**\
+Данный scope создаёт один экземпляр класса на каждый HTTP-запрос.
+* **Session**\
+Данный scope создаёт один экземпляр класса на каждую сессию.
+* **Global-session**\
+Данный scope создаёт один экземпляр класса на каждую глобальную сессию.
+Для примера создадим класс:
+````java
+public class Person {
+   private String name = "Alex";
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+````
+### Добавление scope с помощью Xml файла
+Scope указывается в xml файле при создании бина. Создадим xml конфигурацию в которой создадим два бина с различными scope:
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+    <bean id="personSingleton"
+          class="ru.zubov.scope.xml.Person"
+          scope="singleton">
+    </bean>
+    <bean id="personPrototype"
+          class="ru.zubov.scope.xml.Person"
+          scope="prototype">
+    </bean>
+</beans>
+````
+Создадим класс для получения данных бинов и их тестирования:
+````java
+public class Test {
+
+    public static void main(String[] args) {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("app-contextForScopes.xml");
+        System.out.println("Test singleton bean :");
+        Person person = (Person) context.getBean("personSingleton");
+        System.out.println(person.getName());
+        person.setName("Duke");
+        person = (Person) context.getBean("personSingleton");
+        System.out.println(person.getName());
+
+        System.out.println("Test prototype bean:");
+        person = (Person) context.getBean("personPrototype");
+        System.out.println(person.getName());
+        person.setName("Duke");
+        person = (Person) context.getBean("personPrototype");
+        System.out.println(person.getName());
+    }
+}
+````
+При создании бина со scope = singleton, это означает что у нас создаться один экземпляр класса на всё приложение и в случае каких-либо изменений в этом классе, то изменение отобразится у всех пользователей этого бина.
+При создании бина со scope = personPrototype, при внесении изменений внутри бина, то если другой пользователь запросит данный бин методом getBean(), то он их не увидит.
+Результат данного тестирования можно увидеть ниже:
+````text
+Test singleton bean :
+Alex
+Duke
+Test prototype bean:
+Alex
+Alex
+````
+Подробней с данным програмным кодом можно ознакомится [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/scope/xml)
+### Добавление scope через аннотации
+Указание scope происходит внутри класса:
+````java
+@Component
+@Scope("prototype")
+public class PersonPrototype {
+    private String name = "Alex";
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+@Component
+@Scope("singleton")
+public class PersonSingleton {
+    private String name = "Alex";
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+````
+Создадим конфигурационный класс для получения данных бинов и их тестирования:
+````java
+@Configuration
+@ComponentScan("ru.zubov.scope.annotation")
+public class Test {
+    public static void main(String[] args) {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Test.class);
+        System.out.println("Test singleton bean :");
+        PersonSingleton personSingleton = context.getBean(PersonSingleton.class);
+        System.out.println(personSingleton.getName());
+        personSingleton.setName("Duke");
+        personSingleton = context.getBean(PersonSingleton.class);
+        System.out.println(personSingleton.getName());
+
+        System.out.println("Test prototype bean:");
+        PersonPrototype personPrototype = context.getBean(PersonPrototype.class);
+        System.out.println(personPrototype.getName());
+        personPrototype.setName("Duke");
+        personPrototype = context.getBean(PersonPrototype.class);
+        System.out.println(personPrototype.getName());
+    }
+}
+````
+Результат данного тестирования можно увидеть ниже:
+````text
+Test singleton bean :
+Alex
+Duke
+Test prototype bean:
+Alex
+Alex
+````
+Подробней с данным програмным кодом можно ознакомится [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/scope/annotation)
 ## Жизненный цикл бинов
 При создании бина, каждый бин проходит свой жизненный цикл:
 1) После запуска Spring приложения происходит создания контейнера (ApplicationContext);
@@ -521,6 +669,7 @@ public class Test {
 
 На изображении представлен представлен жизненный цикл бинов.                                          
 ![Alt-текст](https://wiki.wolf-a.ru/images/f/f2/SpringBeanLifeCycle.png )
+
 ### Init метод
 Init-method - это метод, который запускается в ходе инициализацию бина. В этом методе может быть любая логика, но обычно данный метод используется для подключения к БД или инициализации ресурсов.  
 ### Destroy метод

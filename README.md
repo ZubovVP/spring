@@ -685,8 +685,8 @@ Alex
 1) Вызов destroy-method у бина;
 2) Остановка Spring приложения.
 
-На изображении представлен представлен жизненный цикл бинов.                                          
-![Alt-текст](https://wiki.wolf-a.ru/images/f/f2/SpringBeanLifeCycle.png )
+На изображении представлен жизненный цикл бинов.
+![Жизненный цикл бинов](https://github.com/ZubovVP/spring/blob/master/spring-bean/src/main/resources/images/SpringBeanLifeCycle.png "Жизненный цикл бинов в Spring")                                     
 
 ### Init метод
 Init-method - это метод, который запускается в ходе инициализацию бина. В этом методе может быть любая логика, но обычно данный метод используется для подключения к БД или инициализации ресурсов.  

@@ -38,7 +38,11 @@
 6. [Точки соединения в Spring](#Точки-соединения-в-Spring)
 7. [Аспекты в Spring](#Аспекты-в-Spring)
 8. [ProxyFactory в Spring](#ProxyFactory-в-Spring)
-9. [Создание совета в Spring](#Создание-совета-в-Spring)
+9. [Типы советов в Spring](#Типы-советов-в-Spring)
+10. [Интерфейсы для создания совета](#Интерфейсы-для-создания-совета)
+11. [Создание совета "перед"](#Создание-совета-"перед")
+
+
 ---
 ***Spring начало***
 ## Что такое Spring?
@@ -902,10 +906,53 @@ public class TestForFactoryMethod {
 |  Перехват (throws) | org.springframework.aop.ThrowsAdvice | Совет "перехват" выполняется после возврата из вызова метода, но только в случае, если во время вызова метода было сгенерировано исключение.
 |  Введение (introduction) | org.springframework.aop.IntroductionInterceptor | Используя перехватчик введения, можно указать реализацию методов, которые должны быть введены советом.
 
-### Интерфейсы для совета
+### Интерфейсы для создания совета
 В Spring предусмотрена чётко определённая иерархия интерфейсов советов.
 
 ![Иерархия интерфейсов](https://github.com/ZubovVP/spring/blob/master/aop/src/main/resources/images/TypeOfAdvice.png "Интерфейсы для типов советов Spring")
 
 Такая иерархия обладает не только преимуществом своей объектно-ориентированной природы, но также и возможностью работы с типами советов обобщенным образом, используя единственный метод addAdvice() класса ProxyFactory, и добавление новых типов советов без необходимости в модификации класса ProxyFactory.
+### Создание совета "перед"
+Совет "перед" является одним из наиболее часто применяемых типов советов, доступных в Spring. В качестве разбора работы совета "перед" создадим следующий класс:
+````java
+public class WriterMessage {
+
+    public void write(String s) {
+        System.out.println(s);
+    }
+}
+````
+Класс WriterMessage получает строку и выводит на экран. Для того чтобы выполнять какое-либо действие перед вызовом метода write(String s) создадим следующий совет:
+````java
+public class SimpleBeforeAdvice implements MethodBeforeAdvice {
+
+    @Override
+    public void before(Method method, Object[] objects, Object o) throws Throwable {
+        System.out.println("Starting before method : " + method.getName());
+    }
+}
+````
+Данный класс имплементит интерфейс MethodBeforeAdvice и переопределяет метод before(). В данном методе мы будем просто выводить строку на экран.
+Создадим класс для тестирования:
+````java
+public class TestBeforeAdvice {
+    public static void main(String[] args) {
+        ProxyFactory px = new ProxyFactory();
+        px.setTarget(new WriterMessage());
+        px.addAdvice(new SimpleBeforeAdvice());
+        WriterMessage wm = (WriterMessage) px.getProxy();
+        wm.write("Hello world!");
+    }
+}
+````
+Создаём ProxyFactory, вызываем метод setTarget() которому передаём наш экземляр класса WriterMessage.В данный момент мы используем срез по умолчанию, добавляем совет в наш ProxyFactory используя метод addAdvice() и добавляем класс SimpleBeforeAdvice, который имплементирует интерфейс MethodBeforeAdvice.
+В результате выполнения этого примера генерируется следующий вывод:
+````text
+Starting before method : write
+Hello world!
+````
+Как можно увидеть, вывод, полученный из вызова write("Hello world!"), присутствует, но перед ним находится вывод, сгенерированный SimpleBeforeAdvice.
+### Защита доступа к методам с использованием совета "перед"
+
+
 

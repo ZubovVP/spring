@@ -12,11 +12,9 @@ import org.springframework.aop.framework.ProxyFactory;
 public class TestBeforeAdvice {
     public static void main(String[] args) {
         ProxyFactory px = new ProxyFactory();
-        px.setTarget(new WriterMessages());
+        px.setTarget(new WriterMessage());
         px.addAdvice(new SimpleBeforeAdvice());
-
-        WriterMessages wm = (WriterMessages) px.getProxy();
+        WriterMessage wm = (WriterMessage) px.getProxy();
         wm.write("Hello world!");
     }
-
 }

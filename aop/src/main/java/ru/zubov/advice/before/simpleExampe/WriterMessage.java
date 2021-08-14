@@ -7,7 +7,7 @@ package ru.zubov.advice.before.simpleExampe;
  * Version: $.
  * Date: 13.08.2021.
  */
-public class WriterMessages {
+public class WriterMessage {
 
     public void write(String s) {
         System.out.println(s);

@@ -1,5 +1,6 @@
 package ru.zubov.advice.before.exampleWithVerificate;
 
+import lombok.AllArgsConstructor;
 import org.springframework.aop.MethodBeforeAdvice;
 
 import java.lang.reflect.Method;
@@ -11,12 +12,9 @@ import java.lang.reflect.Method;
  * Version: $.
  * Date: 13.08.2021.
  */
+@AllArgsConstructor
 public class SecurityAdvice implements MethodBeforeAdvice {
     private final SecurityManager sm;
-
-    public SecurityAdvice(SecurityManager sm) {
-        this.sm = sm;
-    }
 
     @Override
     public void before(Method method, Object[] objects, Object o) {

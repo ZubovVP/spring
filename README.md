@@ -41,6 +41,7 @@
 9. [Типы советов в Spring](#Типы-советов-в-Spring)
 10. [Интерфейсы для создания совета](#Интерфейсы-для-создания-совета)
 11. [Создание совета "перед"](#Создание-совета-"перед")
+12. [Защита доступа к методам с использованием совета "перед"](#Защита-доступа-к-методам-с-использованием-совета-"перед")
 
 
 ---
@@ -953,6 +954,137 @@ Hello world!
 ````
 Как можно увидеть, вывод, полученный из вызова write("Hello world!"), присутствует, но перед ним находится вывод, сгенерированный SimpleBeforeAdvice.
 ### Защита доступа к методам с использованием совета "перед"
+В этом разделе постараемся реализовать совет "перед", который проверяет учётные данные пользователя перед тем как разрешить вызов метода. Если учётные данный некоректны или не введены, то совет генерирует исключение, предотвращая выполнение метода.
+Создадим класс, который будет отображать сообщение на экране.
+````java
+public class WriterMessages {
 
+    public void write(String s) {
+        System.out.println(s);
+    }
+}
+````
+Данном примере будет использоваться lombok, для его использования рекомендуется в проект добавить зависимость.
+ ````xml
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.20</version>
+            <scope>provided</scope>
+        </dependency>
+````
+ Поскольку в этом примере требуется аутентификация пользователя, так или иначе, мы должны предусмотреть хранение логина и пароля. Код класса User предназначен для хранения учётных записи пользователя. 
+````java
+@Data
+@AllArgsConstructor
+public class User {
+    private String login;
+    private String psw;
+}
+````
+Далее представлен класс SecurityManager, отвечающий за аутентификацию пользователей и сохранение данных с целью извлечение в будущем (данный класс имеет существенный упрощения, т.к. в этом примере ставиться задача по использованию совета "перед")
+````java
+public class SecurityManager {
+    private static ThreadLocal<User> user = new ThreadLocal<>();
 
+    public void login(String name, String psw) {
+        user.set(new User(name, psw));
+    }
 
+    public void logout() {
+        user.set(null);
+    }
+
+    public User getLoginAndPassword(){
+        return user.get();
+    }
+}
+````
+Приложение использует класс SecurityManager для аутентификации пользователя и последующего извлечения деталей, связанный с аутентифицированным пользователем. Пользователь аутентифицируется с помощью метода login(). В реальном приложении, данный метод имел бы подключение к БД и перед добавлением пользователя проверял его наличе в БД и в случае если нет, то его бы добавлял в БД. В нашем примере метод login() создаёт User и сохроняет его в текущем потоке с применением ThreadLocal.Метод logout() полю ThreadLocal присваивается значение null. Метод getLoginAndPassword предоставляет информацию о зарегистрированном пользователе. Если аутенфицированый пользователь отсутствует, этот метод вернёт null.
+Чтобы проверить аутентифицирован ли пользователь, мы должны создать совет, который перед методом сравнивает параметры User, в случае если параметры совпадают, то позволяет вызвать метод, если параметры не совпадают, то вызывается исключение и метод не вызывается. Класс SecurityAdvice, предоставляющий этот совет показан ниже.
+````java
+@AllArgsConstructor
+public class SecurityAdvice implements MethodBeforeAdvice {
+    private final SecurityManager sm;
+
+    @Override
+    public void before(Method method, Object[] objects, Object o) {
+        User user = this.sm.getLoginAndPassword();
+        if (user.getLogin() == null || user.getPsw() == null) {
+            throw new SecurityException("Don't fill in login and password");
+        }
+        if (!user.getLogin().equals("Duke") || !user.getPsw().equals("psw")) {
+            throw new SecurityException("Incorrect login or password!");
+        }
+        System.out.println("Everything is OK!");
+    }
+}
+````
+Класс SecurityAdvice получает в конструкторе экземпляр класса SecurityManager. В методе before() мы проводим простую проверку, соответствует ли имя и пароль указанным требованиям. Если это так, мы предоставляет доступ, а в противном случае генерируем исключение.
+Создадим класс Test и протестируем наш совет.
+````java
+public class Test {
+    private static WriterMessages WM;
+
+    public static void main(String[] args) {
+        checkWithCorrectNameAndPassword();
+        try {
+            checkWithIncorrectNameAndPassword();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+        try {
+            checkWithNameAndPasswordAreNull();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void checkWithCorrectNameAndPassword() {
+        WM = getWriter("Duke", "psw");
+        WM.write("Hello world!");
+    }
+
+    private static void checkWithIncorrectNameAndPassword() {
+        WM = getWriter("Alex", "psw");
+        WM.write("Hello world!");
+    }
+
+    private static void checkWithNameAndPasswordAreNull() {
+        WM = getWriter(null, null);
+        WM.write("Hello world!");
+    }
+
+    private static WriterMessages getWriter(String name, String psw) {
+        WriterMessages writerMessages = new WriterMessages();
+        SecurityManager smg = new SecurityManager();
+        smg.login(name, psw);
+        SecurityAdvice advice = new SecurityAdvice(smg);
+        ProxyFactory pf = new ProxyFactory();
+        pf.setTarget(writerMessages);
+        pf.addAdvice(advice);
+        return (WriterMessages) pf.getProxy();
+    }
+}
+````
+В данном классе мы тестируем наш код на 3 случая:
+* Когда имя и пароль введены корректно;
+* Когда имя и пароль введены не корректно;
+* Когда имя и пароль не введены.
+
+После запуска данного теста, в консоле можно увидеть следующее. При корректном имене и пароле наш раннее созданный совет позволяет выполнить метод:
+````text
+Everything is OK!
+Hello world!
+````
+При указании не корректного имени и пароля на экране появляется exception:
+````text
+java.lang.SecurityException: Incorrect login or password!
+	at ru.zubov.advice.before.exampleWithVerificate.SecurityAdvice.before(SecurityAdvice.java:28)
+````
+Если мы имя и пароль не указываем, то на экране появляется следующий exception:
+````text
+java.lang.SecurityException: Don't fill in login and password
+	at ru.zubov.advice.before.exampleWithVerificate.SecurityAdvice.before(SecurityAdvice.java:25)
+````
+Несмотря на простоту, этот пример подчёркивает полезность совета "перед". Безопасность - типичный пример совета "перед", но данный совет находит как же применение когда требуется модификации аргументов, передаваемых методу.

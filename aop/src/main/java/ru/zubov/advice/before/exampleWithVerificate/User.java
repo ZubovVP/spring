@@ -1,5 +1,8 @@
 package ru.zubov.advice.before.exampleWithVerificate;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 /**
  * Created by Intellij IDEA.
  * User: Vitaly Zubov.
@@ -7,20 +10,9 @@ package ru.zubov.advice.before.exampleWithVerificate;
  * Version: $.
  * Date: 13.08.2021.
  */
+@Data
+@AllArgsConstructor
 public class User {
     private String login;
     private String psw;
-
-    public User(String login, String psw) {
-        this.login = login;
-        this.psw = psw;
-    }
-
-    public String getLogin() {
-        return login;
-    }
-
-    public String getPsw() {
-        return psw;
-    }
 }

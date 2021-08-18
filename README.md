@@ -43,7 +43,8 @@
 11. [Создание совета "перед"](#Создание-совета-"перед")
 12. [Защита доступа к методам с использованием совета "перед"](#Защита-доступа-к-методам-с-использованием-совета-"перед")
 13. [Создание совета "после возврата"](#Создание-совета-"после-возврата")
-
+14. [Создание совета "после возврата" для дополнительной проверки](#Создание-совета-"после-возврата"-для-дополнительной-проверки)
+15. [Создание совета "вокруг"](#Создание-совета-"вокруг")
 
 ---
 ***Spring начало***
@@ -1089,9 +1090,9 @@ java.lang.SecurityException: Don't fill in login and password
 	at ru.zubov.advice.before.exampleWithVerificate.SecurityAdvice.before(SecurityAdvice.java:25)
 ````
 Несмотря на простоту, этот пример подчёркивает полезность совета "перед". Безопасность - типичный пример совета "перед", но данный совет находит как же применение когда требуется модификации аргументов, передаваемых методу.
+Подробнее с программным кодом по созданию совета "перед" можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/advice/before)
 ### Создание совета "после возврата"
 Совет "после возврата" выполняется после того, как произошёл возврат из вызова метода в точке соединения. Учитывая, что метод уже выполнен, переданные ему аргументы модифицировать невозможно. Несмотря на то что совет "после возврата" не позволяет изменять возвращаемое значение вызова метода, можно сгенерировать исключение, которое будет передано вверх по стеку вместо возвращаемого значения. Далее будет рассмотренно два примера использования совета "после возврата". В первом примере после вызова метода будет осуществляться вывод сообщение в консоль. Во втором примере показано, как можно использовать совет "после возврата" для добавления к методу проверки ошибок. 
-### Создание совета "после возврата"
 Создадим совет, который после возвращения из метода будет выводить сообщение в консоль.
 ````java
 public class SimpleAfterReturningAdvice implements AfterReturningAdvice {
@@ -1131,3 +1132,67 @@ Staring afterReturning after.
 After method: write
 ````
 Вывод очень похож на результат, полученный в примере с советом "перед", за исключением того, что сообщение, записываемое советом, находится после сообщения записываемое методом write().
+### Создание совета "после возврата" для дополнительной проверки 
+Совет "после возврата" удобно применять при проведении дополнительной проверки ошибки, когда это возможно, для метода возвращаемое недопустимое значение.
+Создадим класс, который будет предоставлять рандомное число от 0 до 9.
+````java
+public class NumberGenerator {
+    private static final Random RD = new Random();
+
+    public int getNumber() {
+        return RD.nextInt(10);
+    }
+}
+````
+Экземлпяр данного класса при вызове метода getNumber(), предоставляет случайное число от 0 до 9.
+Создадим совет, который будет проводить проверку чисел.
+````java
+public class CheckNumberAdvice implements AfterReturningAdvice {
+
+    @Override
+    public void afterReturning(Object o, Method method, Object[] objects, Object o1) throws Throwable {
+        if ((o1 instanceof NumberGenerator) && ("getNumber".equals(method.getName()))) {
+            if ((Integer) o > 5) {
+                System.out.println("Number is OK - " + o);
+            } else {
+                throw new SecurityException("Number is wrong!");
+            }
+        }
+    }
+}
+````
+Данный совет производить проверку получаемого результата и в случае если  значение меньше 5, то будет передано дальше в стек исключение.
+Создадим класс дла тестирования ранее созданного совета.
+````java
+public class TestCheckNumberAdvice {
+    public static void main(String[] args) {
+        ProxyFactory pf = new ProxyFactory();
+        pf.addAdvice(new CheckNumberAdvice());
+        pf.setTarget(new NumberGenerator());
+        NumberGenerator ng = (NumberGenerator) pf.getProxy();
+        for (int x = 0; x < 10; x++) {
+            try {
+                 ng.getNumber();
+            } catch (SecurityException ex) {
+                System.out.println("Number is wrong!");
+            }
+        }
+    }
+}
+````
+Запуск этого примера даёт в результате следующий вывод:
+````text
+Number is wrong!
+Number is OK - 8
+Number is wrong!
+Number is OK - 6
+Number is OK - 7
+Number is OK - 7
+Number is wrong!
+Number is OK - 9
+Number is wrong!
+Number is OK - 8
+````
+Как и ожидалось, временами генерируемое число будет меньше 5, в результате чего будет сгенерировано исключение SecurityException.
+Подробнее с программным кодом по созданию совета "после возврата" можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/advice/afterreturning)
+### Создание совета "вокруг"

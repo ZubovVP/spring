@@ -45,6 +45,7 @@
 13. [Создание совета "после возврата"](#Создание-совета-"после-возврата")
 14. [Создание совета "после возврата" для дополнительной проверки](#Создание-совета-"после-возврата"-для-дополнительной-проверки)
 15. [Создание совета "вокруг"](#Создание-совета-"вокруг")
+16. [Создание совета "перехват"](#Создание-совета-"перехват")
 
 ---
 ***Spring начало***
@@ -1196,3 +1197,50 @@ Number is OK - 8
 Как и ожидалось, временами генерируемое число будет меньше 5, в результате чего будет сгенерировано исключение SecurityException.
 Подробнее с программным кодом по созданию совета "после возврата" можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/advice/afterreturning)
 ### Создание совета "вокруг"
+Совет "вокруг" функционирует подобно комбинации советов "перед" и " после", но с одним отличием - имеется возможность модифицировать возвращаемое значение. Кроме того, можно предотвратить выполнение метода. Совет "вокруг" в Spring моделируется как перехватчик с использованием интерфейса MethodInterceptor.
+Создадим класс, который будет иметь один метод. Данный метод будет получать какое-либо значение, выводить это значение в консоль и его возвращать его без изменений.
+````java
+public class WriterMessages {
+
+    public int write(int count) {
+        System.out.println("Count = " + count);
+        return count;
+    }
+}
+````
+Создадим совет, который будет выводить информацию до вызова основного метода, выводить информацию после вызова основного метода, а так же увеличивать возвращаемое значение в два раза.
+````java
+public class AroundAdvice implements MethodInterceptor {
+    @Override
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        System.out.println("Start around advice");
+        Object retVal = (int) methodInvocation.proceed() * 2;
+        System.out.println("Finish around advice ");
+        return retVal;
+    }
+}
+````
+Создадим класс, в котором протестируем наш ранее созданный совет.
+````java
+public class TestAroundAdvice {
+
+    public static void main(String[] args) {
+        ProxyFactory pf = new ProxyFactory();
+        pf.setTarget(new WriterMessages());
+        pf.addAdvice(new AroundAdvice());
+        WriterMessages wm = (WriterMessages) pf.getProxy();
+        int result = wm.write(5);
+        System.out.println("count after advice - " + result);
+    }
+}
+````
+Запуск этого примера даёт в результате следующий вывод:
+````text
+Start around advice
+Count = 5
+Finish around advice 
+Result - 10
+````
+Вывод позволяет видеть, что раннее созданный совет "вокруг" добавил текст перед вызовом основного метода, а так же после. Передаваемое значение было так же советом увеличено в два раза.
+Подробнее с программным кодом по созданию совета "вокруг" можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/advice/around)
+### Создание совета "перехват"

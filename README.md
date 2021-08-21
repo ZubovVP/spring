@@ -49,10 +49,8 @@
 17. [Выбор типа совета](#Выбор-типа-совета)
 18. [Советы и срезы](#Советы-и-срезы)
 19. [Интерфейс Pointcut](#Интерфейс-Pointcut)
-
-
-
-
+20. [Создание статического среза с использованием StaticMethodMatcherPointcut](#Создание-статического-среза-с-использованием-StaticMethodMatcherPointcut)
+21. [Создание динамического среза с использованием DynamicMethodMatcherPointcut](#Создание-динамического-среза-с-использованием-DynamicMethodMatcherPointcut)
 
 ---
 ***Spring начало***
@@ -1356,4 +1354,106 @@ Caught: java.lang.IllegalArgumentException
 | org.springframework.aop.support.JdkRegexpMethodPointcut | Класс JdkRegexpMethodPointcut применяется для построения срезов с использованием регулярных выражений.
 | org.springframework.aop.support.NameMatchMethodPointcut | Класс NameMatchMethodPointcut применяется для построения среза, который выполняет сопоставление со списком имён методов.
 
-   
+### Создание статического среза с использованием StaticMethodMatcherPointcut
+Создадим два простых класса Bean, которые будут иметь два метода:
+````java
+public class BeanFirst {
+    
+    public void doSomethingOne(){
+        System.out.println("BeanFirst: starting method doSomethingOne");
+    }
+
+    public void doSomethingTwo(){
+        System.out.println("BeanFirst: starting method doSomethingTwo");
+    }
+
+}
+
+public class BeanSecond {
+    
+    public void doSomethingOne(){
+        System.out.println("BeanSecond: starting method doSomethingOne");
+    }
+
+    public void doSomethingTwo(){
+        System.out.println("BeanSecond: starting method doSomethingTwo");
+    }
+
+}
+````
+Методы в классе BeanFirst и BeanSecond просто выводят информацию в консоль. В этом примере нам нужно будет создать прокси для обоих классов, но применить совет только к одному методу doSomethingOne() класса BeanFirst.
+Чтобы это сделать, нам необходимо создать класс SimpleStaticPointcut, который наследуется от класса StaticMethodMatcherPointcut:
+````java
+public class SimpleStaticPointcut extends StaticMethodMatcherPointcut {
+
+    @Override
+    public boolean matches(Method method, Class<?> aClass) {
+        return ("doSomethingOne".equals(method.getName()));
+    }
+
+    @Override
+    public ClassFilter getClassFilter() {
+        return new ClassFilter() {
+            @Override
+            public boolean matches(Class<?> aClass) {
+                return aClass == BeanFirst.class;
+            }
+        };
+    }
+}
+````
+Реализация метода matches(Method method, Class<?> aClass) возвращает true, если метод имеет имя doSomethingOne и false если другое. Нам необходимо переопределить метод getClassFilter() для того, чтобы статический срез соответствовал только для методов класса BeanFirst.
+Создадим простой совет, который будет выводить сообщения перед началом выполнения метода и после его выполнения (совет around):
+````java
+public class SimpleAdvice implements MethodInterceptor {
+
+    @Override
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        System.out.println("Before method " + methodInvocation.getMethod().getName());
+        Object result = methodInvocation.proceed();
+        System.out.println("After method " + methodInvocation.getMethod().getName());
+        return result;
+    }
+}
+````
+Создадим класс для тестирования статического среза:
+````java
+public class TestStaticPointcut {
+    public static void main(String[] args) {
+        BeanFirst bf = new BeanFirst();
+        BeanSecond bs = new BeanSecond();
+
+        Pointcut pc = new SimpleStaticPointcut();
+        Advice advice = new SimpleAdvice();
+        Advisor advisor = new DefaultPointcutAdvisor(pc, advice);
+
+        ProxyFactory pf = new ProxyFactory();
+        pf.addAdvisor(advisor);
+        pf.setTarget(bf);
+        BeanFirst beanProxyFirst = (BeanFirst) pf.getProxy();
+
+        pf = new ProxyFactory();
+        pf.addAdvisor(advisor);
+        pf.setTarget(bs);
+        BeanSecond beanProxySecond = (BeanSecond) pf.getProxy();
+
+        beanProxyFirst.doSomethingOne();
+        beanProxyFirst.doSomethingTwo();
+        System.out.println("---------------------");
+        beanProxySecond.doSomethingOne();
+        beanProxySecond.doSomethingTwo();
+    }
+}
+````
+Выполнение этого примера даёт следующий результат:
+````text
+Before method doSomethingOne
+BeanFirst: starting method doSomethingOne
+After method doSomethingOne
+BeanFirst: starting method doSomethingTwo
+---------------------
+BeanSecond: starting method doSomethingOne
+BeanSecond: starting method doSomethingTwo
+````
+Как видно из результата выполнения тестирования, единственный метод, к которому применялся совет SimpleAdvice, был метод doSomethingOne() класса BeanFirst.
+### Создание динамического среза с использованием DynamicMethodMatcherPointcut

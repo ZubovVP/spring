@@ -51,6 +51,8 @@
 19. [Интерфейс Pointcut](#Интерфейс-Pointcut)
 20. [Создание статического среза с использованием StaticMethodMatcherPointcut](#Создание-статического-среза-с-использованием-StaticMethodMatcherPointcut)
 21. [Создание динамического среза с использованием DynamicMethodMatcherPointcut](#Создание-динамического-среза-с-использованием-DynamicMethodMatcherPointcut)
+22. [Создание среза с использованием простого сопоставления имён (NameMatchMethodPointcut)](#Создание-среза-с-использованием-простого-сопоставления-имён-(NameMatchMethodPointcut))
+
 
 ---
 ***Spring начало***
@@ -1325,14 +1327,14 @@ Caught: java.lang.IllegalArgumentException
 В общем случае выбор типа совета зависит от поставленной задачи, выбирать нужно наиболее специфический тип совета. Другими словами, не нужно использовать совет "вокруг", если подходит совет "перед". В большинстве случаев совет "вокруг" может обеспечить всё то, что поддерживают остальные три типа советов, однако он может оказаться излишним для реализации задуманного. Применяя наиболее подходящий тип совета, вы делаете программный код более понятным, а так же сокращается возможность совершения ошибок.  
 ### Советы и срезы
 Ранее во всех примерах при конфигурировании совета для прокси вызывался метод ProxyFactory.addAdvice(). Внутри этот метод делегирует свою работу методу addAdvisor(), создающий экземпляр DefaultPointcutAdvisor и конфигурирующему его со срезом, который указывает *на все методы*. В такоей ситуации совет применяется ко всем методам целевого объекта, но зачастую нам нет необходимости в использовании совета ко всем методам целевого объекта. Самое просто что может прийти в голову, это выполнять проверку, подходит или не подходит метод, но в таком подходе есть существенные недостатки. Один из которых заключается в том, что присутствует жёсткое кодирование применяемых методов в совете и тем самым теряется возможность многократного использования. С помощью срезов можно конфигурировать перечень методов, к которым будет применим совет, не помещая этот код внутрь совета, тем самым квеличивается возможность многократного использования совета.
-Если снабжаемый советом метод проверяется внутри совета, проверка выполняется каждый раз, когда вызывается любой метод целевого объекта, тем самым страдает производительность. Когда применяется срезы, првоерка выполняется один раз к одному методу, а резульаты кэшируется для дальнейшего использования.
+Если снабжаемый советом метод проверяется внутри совета, проверка выполняется каждый раз, когда вызывается любой метод целевого объекта, тем самым страдает производительность. Когда применяется срезы, проверка выполняется один раз к одному методу, а резульаты кэшируется для дальнейшего использования.
 Настоятельно рекомендуется использовать срезы (где это возможно) для избежания жёстко кодирования и увеличения производительности программы, но не рекомендуется злоупотреблять этим, так как это может привести к замедлению работы программы.
 ### Интерфейс Pointcut
 Срезы в Spring создаются путём реализации интерфейса Pointcut. В интерфейсе Pointcut определены два метода, getClassFilter() и getMethodMatcher(), которые возвращают экземпляры ClassFilter и MethodMatcher. К счастью, реализовывать данный методы не обязательно, поскольку Spring предоставляет реализации Pointcut на выбор, покрывающие большинство сценариев использования.
 При выявлении, применим ли интерфейс Pointcut к конкретному методу, Spring сначала проверяет, применим ли Pointcut к классу этого метода, который возвращается вызовом Pointcut.getClassFilter(). В интерфейсе ClassFilter определён единственный метод matches(), который принимает экземпляр Class для проверки и возвращает true если срез применим классу или в противном случае false.
-Интерфейс MethodMatcher сложнее интерфейса ClassFilter. В Spring поддерживается два типа MethodMatcher, статический и динамический, что определяется по возвращаемому значению метода isRuntime(), если данный метод возвращет false, то значит что MethodMatcher является статическим или же динамическим, что отражается значением true.
-Для статического среза Spring вызывает метод matches(Method, Class<T>) интерфейса MethodMatcher по одному разу для каждого метода целевого объекта.
-Для динамического среза Spring вызывает метод matches(Method, Class<T>) интерфейса MethodMatcher единожды, чтобы определить общую принадлежность этого метода и если результат окажется true, то Spring проводит дальнейшую проверку для каждого вызова метода используя matches(Method, Class<T>, Object[]). Таким образом динамический MethodMatcher может выяснить, должен ли применяться срез, на основе конкретного вызова метода, а не только самого метода.
+Интерфейс MethodMatcher сложнее интерфейса ClassFilter. В Spring поддерживается два типа MethodMatcher, статический и динамический, что определяется по возвращаемому значению метода isRuntime(), если данный метод возвращает false, то значит что MethodMatcher является статическим или же динамическим, что отражается значением true.
+Для статического среза Spring вызывает метод matches(Method, Class<T>) интерфейса MethodMatcher по одному разу для каждого метода целевого объекта.\
+Для динамического среза Spring вызывает метод matches(Method, Class<T>) интерфейса MethodMatcher единожды, чтобы определить общую принадлежность этого метода и если результат окажется true, то Spring проводит дальнейшую проверку для каждого вызова метода используя matches(Method, Class<T>, Object[]). Таким образом динамический MethodMatcher может выяснить, должен ли применяться срез, на основе конкретного вызова метода, а не только самого метода.\
 Очевидно что статические срезы выполняются намного быстрее динамических, т.к. не требуют дополнительной проверки при каждом вызове. В общем случае рекомендуется использовать статические срезы везде, где это возможно.
 ### Доступные реализации Pointcut
 В Spring 4.0 предлагается восемь реализаций интерфейса Pointcut, а именно два абстрактных класса служащие для создания статических и динамических срезов, и шесть конкретных классов предназначенных для решения следующих задач:
@@ -1456,4 +1458,95 @@ BeanSecond: starting method doSomethingOne
 BeanSecond: starting method doSomethingTwo
 ````
 Как видно из результата выполнения тестирования, единственный метод, к которому применялся совет SimpleAdvice, был метод doSomethingOne() класса BeanFirst.
+Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/static_pointcut).
+
 ### Создание динамического среза с использованием DynamicMethodMatcherPointcut
+Создание динамического среза не сильно отличается от статического среза, поэтому будем использовать пример из предыдущего раздела с небольшими модификациями. Создадим один класс с двумя методами, но в методы мы будем передавать аргумент:
+````java
+public class BeanFirst {
+
+    public void doSomethingOne(int x){
+        System.out.println("BeanFirst: starting method doSomethingOne, count = " + x);
+    }
+
+    public void doSomethingTwo(int x){
+        System.out.println("BeanFirst: starting method doSomethingTwo, count = " + x);
+    }
+
+}
+````
+Как и в случае со статическим срезом, для создания динамических срезов создадим класс, который будет наследоваться от DynamicMethodMatcherPointcut:
+````java
+public class SimpleDynamicPointcut extends DynamicMethodMatcherPointcut {
+
+    @Override
+    public boolean matches(Method method, Class<?> aClass, Object... objects) {
+        System.out.println("Check method for " + method.getName());
+        return ("doSomethingOne".equals(method.getName()) && (int) objects[0] >= 100);
+    }
+
+    @Override
+    public ClassFilter getClassFilter() {
+        return new ClassFilter() {
+            @Override
+            public boolean matches(Class<?> aClass) {
+                return aClass == BeanFirst.class;
+            }
+        };
+    }
+}
+````
+В методе matches(Method method, Class<?> aClass, Object... objects) мы хотим снабдить метод doSomethingOne() советом, при условии если приходящий к нему аргумент равен 100 или более, то возвращает true, в противном случае возвращает false. В классе метод ClassFilter() подобно предыдущему примеру устраняет необходимость в проверке класса в методах сопоставления имён методов.
+Создадим простой совет, который будет выводить сообщения перед началом выполнения метода и после его выполнения (совет around):
+````java
+public class SimpleAdvice implements MethodInterceptor {
+
+    @Override
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        System.out.println("Before method " + methodInvocation.getMethod().getName());
+        Object result = methodInvocation.proceed();
+        System.out.println("After method " + methodInvocation.getMethod().getName());
+        return result;
+    }
+}
+````
+Создадим класс для тестирования динамического среза:
+````java
+public class TestDynamicPointcut {
+    public static void main(String[] args) {
+        BeanFirst bf = new BeanFirst();
+
+        Pointcut pc = new SimpleDynamicPointcut();
+        Advice advice = new SimpleAdvice();
+        Advisor advisor = new DefaultPointcutAdvisor(pc, advice);
+
+        ProxyFactory pf = new ProxyFactory();
+        pf.addAdvisor(advisor);
+        pf.setTarget(bf);
+        BeanFirst beanProxyFirst = (BeanFirst) pf.getProxy();
+
+        beanProxyFirst.doSomethingOne(1);
+        beanProxyFirst.doSomethingOne(10);
+        beanProxyFirst.doSomethingOne(100);
+
+        beanProxyFirst.doSomethingTwo(100);
+
+    }
+}
+````
+Выполнение этого примера даёт следующий результат:
+````text
+Check method for doSomethingOne
+BeanFirst: starting method doSomethingOne, count = 1
+Check method for doSomethingOne
+BeanFirst: starting method doSomethingOne, count = 10
+Check method for doSomethingOne
+Before method doSomethingOne
+BeanFirst: starting method doSomethingOne, count = 100
+After method doSomethingOne
+Check method for doSomethingTwo
+BeanFirst: starting method doSomethingTwo, count = 100
+````
+Как видно из результата выполнения тестирования, единственный метод, к которому применялся совет SimpleAdvice, был метод doSomethingOne(). При условии если переданный аргумент был 100 или больше, то к нему применялся совет SimpleAdvice. Все остальные методы работают без изменения.
+Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/dynamic_pointcut).
+### Создание среза с использованием простого сопоставления имён (NameMatchMethodPointcut)

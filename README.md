@@ -1550,3 +1550,73 @@ BeanFirst: starting method doSomethingTwo, count = 100
 Как видно из результата выполнения тестирования, единственный метод, к которому применялся совет SimpleAdvice, был метод doSomethingOne(). При условии если переданный аргумент был 100 или больше, то к нему применялся совет SimpleAdvice. Все остальные методы работают без изменения.
 Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/dynamic_pointcut).
 ### Создание среза с использованием простого сопоставления имён (NameMatchMethodPointcut)
+Очень часто при создании среза требуются выполнить сопоставление на основе лишь названия метода, игнорируя сигнатуру и возвращаемый тип. Для таких целей используется подкласс StaticMethodMatcherPointcut - NameMatchMethodPointcut. Когда используется NameMatchMethodPointcut, то никакого внимания сигнатуре не уделяется, поэтому в не зависимости от того какие аргументы передаются методу, они будут выполняться оба.    
+В качестве примера создадим следующий класс:
+````java
+public class BeanFirst {
+
+    public void testOne() {
+        System.out.println("Processing method - testOne without arguments");
+    }
+
+    public int testOne(int count) {
+        System.out.println("Processing method - testOne with arguments");
+        return count;
+    }
+
+    public void testTwo() {
+        System.out.println("Processing method - testTwo without arguments");
+    }
+}
+````
+В рассматриваемом примере мы снабдим метод testOne() советом, в не зависимости от того какой из двух методов вызывается.
+Возьмём совет из предыдущего примера:
+````java
+public class SimpleAdvice implements MethodInterceptor {
+
+    @Override
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        System.out.println("Before method " + methodInvocation.getMethod().getName());
+        Object result = methodInvocation.proceed();
+        System.out.println("After method " + methodInvocation.getMethod().getName());
+        return result;
+    }
+}
+```` 
+Создадим класс для тестирования:
+````java
+public class TestNamePointcut {
+    public static void main(String[] args) {
+        BeanFirst bf = new BeanFirst();
+        NameMatchMethodPointcut pointcut = new NameMatchMethodPointcut();
+        pointcut.addMethodName("testOne");
+        Advisor advisor = new DefaultPointcutAdvisor(pointcut, new SimpleAdvice());
+
+        ProxyFactory pf = new ProxyFactory();
+        pf.setTarget(bf);
+        pf.addAdvisor(advisor);
+
+        BeanFirst proxy = (BeanFirst) pf.getProxy();
+        proxy.testOne();
+        System.out.println("---------------");
+        proxy.testTwo();
+        System.out.println("---------------");
+        proxy.testOne(10);
+    }
+
+}
+````
+Потребность в построении класс для среза отсутствует, достаточно просто создать экземпляр класса NameMatchMethodPointcut и с помощью метода addMethodName(), добавить названия методов к котором необходимо применить совет. Запуск этого примера даёт следующий результат:
+````text
+Before method testOne
+Processing method - testOne without arguments
+After method testOne
+---------------
+Processing method - testTwo without arguments
+---------------
+Before method testOne
+Processing method - testOne with arguments
+After method testOne
+````
+Как и ожидалось, благодаря срезу методы testOne() и testOne(int count) были снабжены советом, а метод testTwo() остался не тронутым.
+Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/name_pointcut).

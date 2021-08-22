@@ -52,6 +52,9 @@
 20. [Создание статического среза с использованием StaticMethodMatcherPointcut](#Создание-статического-среза-с-использованием-StaticMethodMatcherPointcut)
 21. [Создание динамического среза с использованием DynamicMethodMatcherPointcut](#Создание-динамического-среза-с-использованием-DynamicMethodMatcherPointcut)
 22. [Создание среза с использованием простого сопоставления имён (NameMatchMethodPointcut)](#Создание-среза-с-использованием-простого-сопоставления-имён-(NameMatchMethodPointcut))
+23. [Создание среза с использованием AspectJ](#Создание-среза-с-использованием-AspectJ)
+24. [Создание среза с использованием аннотации](#Создание-среза-с-использованием-аннотации)
+
 
 
 ---
@@ -1620,3 +1623,88 @@ After method testOne
 ````
 Как и ожидалось, благодаря срезу методы testOne() и testOne(int count) были снабжены советом, а метод testTwo() остался не тронутым.
 Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/name_pointcut).
+### Создание среза с использованием AspectJ
+Для работы с выражениями срезов AspectJ необходимо к проекту добавить зависимости:
+````xml
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjrt</artifactId>
+    <version>1.9.7</version>
+    <scope>runtime</scope>
+</dependency>
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.9.7</version>
+    <scope>runtime</scope>
+</dependency>
+````
+Возьмём бин из прошлого примера добавим третий метод и постараемся сделать так, чтобы совет применялся ко всем методам, которые начинаются на do, но с использованием AspectJ:
+````java
+public class BeanFirst {
+
+    public void doSomethingOne(){
+        System.out.println("BeanFirst: starting method doSomethingOne");
+    }
+
+     public int doSomethingTwo(int count){
+            System.out.println("BeanFirst: starting method doSomethingTwo");
+            return count;
+        }
+
+    public void somethingThree(){
+        System.out.println("BeanFirst: starting method somethingThree");
+    }
+}
+````
+Возьмём совет из предыдущего примера:
+````java
+public class SimpleAdvice implements MethodInterceptor {
+
+    @Override
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        System.out.println("Before method " + methodInvocation.getMethod().getName());
+        Object result = methodInvocation.proceed();
+        System.out.println("After method " + methodInvocation.getMethod().getName());
+        return result;
+    }
+}
+```` 
+С помощью среза, основанного на выражении AspectJ, можно также обеспечить сопоставление со всеми методами этого класса, которые начинаются с do.
+````java
+public class TestAspectJPointcut {
+    public static void main(String[] args) {
+        BeanFirst bf = new BeanFirst();
+        AspectJExpressionPointcut pc = new AspectJExpressionPointcut();
+        pc.setExpression("execution(* do*(..))");
+        Advisor advisor = new DefaultPointcutAdvisor(pc, new SimpleAdvice());
+
+        ProxyFactory pf = new ProxyFactory();
+        pf.setTarget(bf);
+        pf.addAdvisor(advisor);
+
+        BeanFirst proxy = (BeanFirst) pf.getProxy();
+        proxy.doSomethingOne();
+        System.out.println("------------");
+        proxy.doSomethingTwo(100);
+        System.out.println("------------");
+        proxy.somethingThree();
+    }
+}
+````
+Метод setExpression() класса AspectJExpressionPointcut используется для установки критерия совпадения. Выражение pc.setExpression("execution(* do*(..))") означает, что совет должен применяться к выполнению любых методов, которые имею имена начинающиеся на do, принимают любые аргументы и возвращает значения любого типа.
+Запуск программы даст следующий результат:
+````text
+Before method doSomethingOne
+BeanFirst: starting method doSomethingOne
+After method doSomethingOne
+------------
+Before method doSomethingTwo
+BeanFirst: starting method doSomethingTwo
+After method doSomethingTwo
+------------
+BeanFirst: starting method somethingThree
+````
+Применение совета произошло только к методу doSomethingOne и doSomethingTwo, а именно тех, которые начинаются на do.
+Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/aspctj).
+### Создание среза с использованием аннотации

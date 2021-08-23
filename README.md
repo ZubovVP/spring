@@ -1708,3 +1708,66 @@ BeanFirst: starting method somethingThree
 Применение совета произошло только к методу doSomethingOne и doSomethingTwo, а именно тех, которые начинаются на do.
 Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/aspctj).
 ### Создание среза с использованием аннотации
+В Spring при создании срезов можно использовать аннотации. В Spring доступен класс AnnotationMatchingPointcut для определения срезов с использованием аннотаций.
+Первым делом определим интерфейс аннотации по имени AdviceRequired, который представляет аннотацию, используемою для объявления среза:
+````java
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface AdviceRequired {
+}
+````
+Мы объявили интерфейс как аннотацию с указанием @interface в качестве типа, при этом аннотация @Target определяет, что аннотация @AdviceRequired может применяться либо на уровне типа, либо на уровне метода. 
+Ниже приведён код простого бина с использованием аннотации @AdviceRequired/
+````java
+public class Bean {
+    @AdviceRequired
+    public void doSomethingOne(){
+        System.out.println("BeanFirst: starting method doSomethingOne");
+    }
+
+    public int doSomethingTwo(int count){
+        System.out.println("BeanFirst: starting method doSomethingTwo");
+        return count;
+    }
+}
+````
+В представленном выше бине метод doSomethingOne() аннотирован с помощью @AdviceRequired и к нему должен быть применён совет.
+Создадим простой совет.
+````java
+public class SimpleAdvice implements MethodInterceptor {
+
+    @Override
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        System.out.println("Before method " + methodInvocation.getMethod().getName());
+        Object result = methodInvocation.proceed();
+        System.out.println("After method " + methodInvocation.getMethod().getName());
+        return result;
+    }
+}
+````
+Создадим класс для тестирования.
+````java
+public class TestAnnotationPointcut {
+    public static void main(String[] args) {
+        Bean bean = new Bean();
+        AnnotationMatchingPointcut pc = AnnotationMatchingPointcut.forMethodAnnotation(AdviceRequired.class);
+        Advisor advisor = new DefaultPointcutAdvisor(pc, new SimpleAdvice());
+        ProxyFactory pf = new ProxyFactory();
+        pf.addAdvisor(advisor);
+        pf.setTarget(bean);
+        Bean proxy = (Bean) pf.getProxy();
+        proxy.doSomethingOne();
+        System.out.println("----------------");
+        proxy.doSomethingTwo(100);
+    }
+}
+````
+В этом коде запрашиваемый экземпляр класса AnnotationMatchingPointcut за счёт вызова его статического метода forMethodAnnotation(), которому передаётся тип аннотации. Это указывает, что мы хотим применить совет ко всем методам, аннотированным заданной аннотацией. Также возможно указать аннотации на уровне типа, вызвав метод forClassAnnotation(). Ниже представлен вывод, полученный в результате запуска этой программы.
+````text
+Before method doSomethingOne
+BeanFirst: starting method doSomethingOne
+After method doSomethingOne
+----------------
+BeanFirst: starting method doSomethingTwo
+````
+Как видно из результата, совет был применён только к одному методу doSomethingOne(), у которого была установленна аннотация @AdviceRequired. 

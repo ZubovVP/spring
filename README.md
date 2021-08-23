@@ -54,6 +54,7 @@
 22. [Создание среза с использованием простого сопоставления имён (NameMatchMethodPointcut)](#Создание-среза-с-использованием-простого-сопоставления-имён-(NameMatchMethodPointcut))
 23. [Создание среза с использованием AspectJ](#Создание-среза-с-использованием-AspectJ)
 24. [Создание среза с использованием аннотации](#Создание-среза-с-использованием-аннотации)
+25. [Начало работы с введениями](#Начало-работы-с-введениями)
 
 
 
@@ -1770,4 +1771,121 @@ After method doSomethingOne
 ----------------
 BeanFirst: starting method doSomethingTwo
 ````
-Как видно из результата, совет был применён только к одному методу doSomethingOne(), у которого была установленна аннотация @AdviceRequired. 
+Как видно из результата, совет был применён только к одному методу doSomethingOne(), у которого была установленна аннотация @AdviceRequired.
+### Основы введений
+ Введения представляет собой часть функциональных возможностей АОП, доступных в Spring. За счёт использования введений можно динамически добавлять новую функциональность к существующему объекту.
+ В Spring введения трактуются как специальный тип совета, точнее - как специальный тип совета "вокруг". ___Поскольку введения применяются исключительно на уровне классов, использовать срезы с введениями нельзя___. Чтобы построить введение, необходимо создать класс, который унаследован от DelegatingIntroductionInterceptor и реализуете интерфейсы предназначенный для введения.
+ Точно так же, как необходимо использовать PointAdvisor при работе с советом среза, потребуется применять IntroductionAdvisor для добавления прокси. Стандартной реализацией IntroductionAdvisor является DefaultIntroductionAdvisor. ___Добавление введения с помощью PoxyFactory.addAdvice() не разрешено и приводит к генерации исключения AopConfigException. Вместо него должен использоваться метод addAdvisor() с передачей ему экземпляра реализации интерфейса IntroductionAdvisor.
+### Создание введения на обнаружения модификации объекта
+Обнаружение модификации объекта может быть очень полезный приём для предотвращения излишнего доступа к базе данных. В рассматриваемом примере мы собираемся построить введение на проверку модификации объектов. Логика проверки модификации инкапсулирована в интерфейсе IsModified, реализация которого будет введена в соответствующие объекты вместе с логикой перехвата для автоматического выполнения проверок модификации. 
+````java
+public interface IsModified {
+    boolean isModified();
+}
+````
+Один метод, который отражает был объект модифицирован или нет.
+Следующим шагом заключается в создании кода, который реализует интерфейс IsModified и будет введён в объекты. Создание такого класса намного проще путём определения наследования от DelegatingIntroductionInterceptor. Создадим класс IsModifiedPerson, который наследуется от DelegatingIntroductionInterceptor и реализует интерфейс IsModified.
+````java
+public class IsModifiedPerson extends DelegatingIntroductionInterceptor implements IsModified {
+    private boolean isModified = false;
+    private Map<Method, Method> methods = new HashMap<Method, Method>();
+
+
+    @Override
+    public boolean isModified() {
+        return this.isModified;
+    }
+
+    @Override
+    public Object invoke(MethodInvocation mi) throws Throwable {
+        if (!this.isModified) {
+            if ((mi.getMethod().getName().startsWith("set")) && (mi.getArguments().length == 1)) {
+                Method getter = getGetter(mi.getMethod());
+                if (getter != null) {
+                    Object newValue = mi.getArguments()[0];
+                    Object oldValue = getter.invoke(mi.getThis(), null);
+
+                    if ((newValue == null) && (oldValue == null)) {
+                        this.isModified = false;
+                    } else if ((newValue == null) && (oldValue != null)) {
+                        this.isModified = true;
+                    } else if ((newValue != null) && (oldValue == null)) {
+                        this.isModified = true;
+                    } else {
+                        this.isModified = (!newValue.equals(oldValue));
+                    }
+                }
+            }
+        }
+        return super.invoke(mi);
+    }
+
+    private Method getGetter(Method setter) {
+        Method getter = null;
+
+        getter = this.methods.get(setter);
+
+        if (getter != null) {
+            return getter;
+        }
+
+        String getterName = setter.getName().replaceFirst("set", "get");
+        try {
+            getter = setter.getDeclaringClass().getMethod(getterName, null);
+            synchronized (this.methods) {
+                this.methods.put(setter, getter);
+            }
+            return getter;
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
+    }
+}
+````
+В данном классе реализован метод isModified(), который передаёт состояния приватного поля. Реализация метода invoke не является обязательной, но в данному случае она позволяет обнаруживать модификацию автоматически. Мы начинаем с выполнение проверки, только если объект пока езё не изменялся; провеять на предмет модификаций объект, в отношении которого известно, что он изменялся, необходимости нет. Затем мы выясняем, является ли метод установщиком, и если это так, то извлекаем соответствующий метод получателя. Обратите внимание, что пара получателя/установщика кешируется для ускорения будущих извлечений. Наконец, мы сравниваем значения, возвращенное получателем, со значением, переданным установщику, чтобы определить, произошла ли модификация. При этом выполняются проверки с возможными комбинациями значений null с соответствующей установкой isModified.При переопределении метода invoke() потребуется обязательно вызвать super.invoke(mi).\
+Следующий шаг не обязателен, но он поможет обеспечить применение нового экземпляра класса IsModifiedPerson для каждого объекта, снабжённого советом.
+````java
+public class IsModifiedAdvisor extends DefaultIntroductionAdvisor {
+    
+    public IsModifiedAdvisor() {
+        super(new IsModifiedPerson());
+    }
+}
+````
+При создании класса IsModifiedAdvisor, был расширен класс DefaultIntroductionAdvisor. Реализация данного совета довольно проста и не требует дополнительных пояснений.\
+Создадим целевой класс Person.
+````java
+@Data
+@AllArgsConstructor
+public class Person {
+    private String name;
+    private String surname;
+    private int age;
+}
+````
+Этот клас имеет три поля, которые мы будем использовать при тестировании модификации. Теперь когда всё готово, мы можем протестировать проверку модификации.
+````java
+public class TestModified {
+    public static void main(String[] args) {
+        Person person = new Person("Duke", "Smith", 29);
+        IntroductionAdvisor advisor = new IsModifiedAdvisor();
+        ProxyFactory pf = new ProxyFactory();
+        pf.setTarget(person);
+        pf.addAdvisor(advisor);
+        pf.setOptimize(true);
+
+        Person proxy = (Person) pf.getProxy();
+        IsModified proxyInterface = (IsModified) proxy;
+        System.out.println("Is Person?  " + (proxy instanceof Person));
+        System.out.println("Is IsModified?  " + (proxy instanceof IsModified));
+        System.out.println("Has been modified? " +  proxyInterface.isModified());
+        proxy.setName("Duke");
+        System.out.println("Has been modified? " +  proxyInterface.isModified());
+        proxy.setName("Alex");
+        System.out.println("Has been modified? " +  proxyInterface.isModified());
+    }
+}
+````
+Как и ожидалось, обе проверки instanceof возвращают true. Обратите внимание, когда мы поменяли имя на то, которое раньше стояло, то значение модификации вернуло false. Однако финальный вызов метода isModified(), после того как мы поменяли на новое имя, возвращает true, указывая на то, что объект изменился.\
+Введения являются одним из наиболее мощных средств АОП в Spring; они позволяют не только расширять функциональность существующих методов, но также динамически расширять набор интерфейсов и реализации объектов. Использование введений - это отличный способ реализации сквозной логики, с которой приложение взаимодействует через чётко определённые интерфейсы. В общем, это такая разновидность логики, которую желательно применять декларативно, а не программно.\
+Очевидно введения работают через проки, они добавляют определённый объём накладных расходов. Все методы прокси считаются снабжёнными советом, т.к. применять срезы в сочетании с введениями не допускается. Тем не менее, учитывая многочисленность служб, которые можно реализовать с помощью введений, накладыне расходы связанные с производительностью, является лишь небольшой платой за сокращения объёма кода, а также за повышенную устойчивость и улучшение возможности сопровождения.

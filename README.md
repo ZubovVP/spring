@@ -1787,7 +1787,7 @@ public interface IsModified {
     boolean isModified();
 }
 ````
-Один метод, который отражает был объект модифицирован или нет.
+Один метод, который отражает, был объект модифицирован или нет.
 Следующим шагом заключается в создании кода, который реализует интерфейс IsModified и будет введён в объекты. Создание такого класса намного проще путём определения наследования от DelegatingIntroductionInterceptor. Создадим класс IsModifiedPerson, который наследуется от DelegatingIntroductionInterceptor и реализует интерфейс IsModified.
 ````java
 public class IsModifiedPerson extends DelegatingIntroductionInterceptor implements IsModified {
@@ -1897,3 +1897,42 @@ public class TestModified {
 ---
 ***Поддержка JDBC в Spring***
 ### Модель данных для дальнейших примеров
+Перед тем как продолжить, нам необходимо представить простую модель данных, которая будет использоваться во всех примерах этой главы. Модель включает в себя простую базу данных о пользователях и их контактов, которая включает в себя три таблицы. Первая таблица из них, таблица ___persons___, данная таблица хранит информацию о персоне. Вторая таблица ___models___ хранит информацию о типов контактов и третья таблица ___contacts___ содержит подробности о телефонах этой персоны. Каждая персона может иметь ноль или более телефонных номеров, другими словами между таблицей persons и contacts установлена связь "один ко многим". Связь между таблицей contacts и models установлена связь "один ко многим".
+![Схема взаимодействия таблиц](https://github.com/ZubovVP/spring/blob/master/jdbc/src/main/resources/images/schema.png "Схема взаимодействия таблиц")
+Как видно, во всех таблицах присутствует столбец id, значение которого автоматически устанавливается базой данной во время вставки данных. Таблица contacts имеет два внешних ключа один с таблицей models, второй с таблицей persons.\
+Ниже приведён сценарий по созданию таблиц:
+````sql
+CREATE TABLE  persons (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(30) NOT NULL,
+    last_name VARCHAR(30) NOT NULL,
+    birth_date date NOT NULL,
+    UNIQUE (first_name, last_name)
+);
+
+CREATE TABLE models (
+    id SERIAL PRIMARY KEY,
+    model VARCHAR (20) UNIQUE NOT NULL
+);
+
+CREATE TABLE contacts (
+    id SERIAL PRIMARY KEY,
+    model_id INT REFERENCES models(id),
+    telephone_number VARCHAR (25),
+    contact_id INT references persons(id),
+    UNIQUE (id, model_id)
+);
+````
+Ниже приведён сценарий по наполнению таблиц:
+````sql
+INSERT INTO models (model) VALUES ('Mobile');
+INSERT INTO models (model) VALUES ('Home');
+INSERT INTO persons (first_name, last_name, birth_date) VALUES ('Duke', 'Zubov', '1992-03-04');
+INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (1, 89997502222, 1);
+INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (2, 8499500390, 1);
+INSERT INTO persons (first_name, last_name, birth_date) VALUES ('Alex', 'Alexsandrov', '1989-09-05');
+INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (1, 89156540255, 2);
+````
+
+                  
+ 

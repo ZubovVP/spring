@@ -63,7 +63,8 @@
 
 
 ---
-***Spring начало***
+##Spring начало
+
 ## Что такое Spring?
 Основная задача Spring - это упростить и сократить работу программиста при создании Java-приложения. 
 Spring - это фрэймворк, который представляет контейнер внедрения зависимостей с несколькими модулями.
@@ -875,7 +876,8 @@ public class TestForFactoryMethod {
 При запуске Spring приложения мы получим объект созданный через фабричный метод. С полным программным кодом можно ознакомится [(тут)](https://github.com/ZubovVP/spring/tree/master/spring-bean/src/main/java/ru/zubov/lifecycle/annotation)
 
 ---
-***Spring AOP***
+##Spring AOP
+
 ### Что такое АОП?
 [AOP (аспектно-ориентированное программирование)](https://ru.wikipedia.org/wiki/Аспектно-ориентированное_программирование) - это парадигма программирования являющейся дальнейшим развитием процедурного и объектно-ориентированного программирования (ООП). Идея АОП заключается в выделении так называемой сквозной функциональности.\
 Помимо внедрения зависимостей (Dependence Injection - DI) Spring предлагает поддержку аспектно-ориентированного программирования (АОП). На АОП часто ссылаются как на инструмент реализации сквозной функциональности. Сквозная функциональность имеет отношение к логике, которая не может быть отделена от остальной части приложения и в результате приводить к дублированию кода. За счёт использования АОП можно избежать дублирования кода.\
@@ -1895,11 +1897,14 @@ public class TestModified {
 Очевидно введения работают через проки, они добавляют определённый объём накладных расходов. Все методы прокси считаются снабжёнными советом, т.к. применять срезы в сочетании с введениями не допускается. Тем не менее, учитывая многочисленность служб, которые можно реализовать с помощью введений, накладыне расходы связанные с производительностью, является лишь небольшой платой за сокращения объёма кода, а также за повышенную устойчивость и улучшение возможности сопровождения.
 
 ---
-***Поддержка JDBC в Spring***
+##Поддержка JDBC в Spring
+
 ### Модель данных для дальнейших примеров
 Перед тем как продолжить, нам необходимо представить простую модель данных, которая будет использоваться во всех примерах этой главы. Модель включает в себя простую базу данных о пользователях и их контактов, которая включает в себя три таблицы. Первая таблица из них, таблица ___persons___, данная таблица хранит информацию о персоне. Вторая таблица ___models___ хранит информацию о типов контактов и третья таблица ___contacts___ содержит подробности о телефонах этой персоны. Каждая персона может иметь ноль или более телефонных номеров, другими словами между таблицей persons и contacts установлена связь "один ко многим". Связь между таблицей contacts и models установлена связь "один ко многим".
 ![Схема взаимодействия таблиц](https://github.com/ZubovVP/spring/blob/master/jdbc/src/main/resources/images/schema.png "Схема взаимодействия таблиц")
+
 Как видно, во всех таблицах присутствует столбец id, значение которого автоматически устанавливается базой данной во время вставки данных. Таблица contacts имеет два внешних ключа один с таблицей models, второй с таблицей persons.\
+Во всех примерах данной главы для демонстрации взаимодействия с реальной базой мы будем использовать СУРБД с открытом кодом PostgreSQL. Это требует наличия у вас доступного экземпляра PostgreSQL. Процесс установки PostgreSQL не рассматривается, при желании можно применять другую СУБД, но тогда соответствующим образом должны модифицировать определения схемы и функций. 
 Ниже приведён сценарий по созданию таблиц:
 ````sql
 CREATE TABLE  persons (
@@ -1919,8 +1924,8 @@ CREATE TABLE contacts (
     id SERIAL PRIMARY KEY,
     model_id INT REFERENCES models(id),
     telephone_number VARCHAR (25),
-    contact_id INT references persons(id),
-    UNIQUE (id, model_id)
+    person_id INT references persons(id),
+    UNIQUE (model_id, person_id)
 );
 ````
 Ниже приведён сценарий по наполнению таблиц:
@@ -1933,6 +1938,54 @@ INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (2, 8499500
 INSERT INTO persons (first_name, last_name, birth_date) VALUES ('Alex', 'Alexsandrov', '1989-09-05');
 INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (1, 89156540255, 2);
 ````
+Далее будет приведены примеры добавления, извлечения и изменения данных из базы данных через JDBC и отображения результирующего набора непосредственно на [POJO](https://ru.wikipedia.org/wiki/POJO) объекты. Ниже представлены классы предметной области Person, Model и Contact.
+````java
+@Data
+@AllArgsConstructor
+public class Person {
+    private int id;
+    private String first_name;
+    private String last_name;
+    private Date birthDate;
+    private List<Contact> contacts;
+}
 
-                  
+@Data
+@AllArgsConstructor
+public class Model {
+    private int id;
+    private String model;
+}
+
+@Data
+@AllArgsConstructor
+public class Contact {
+    private int id;
+    private Model model;
+    private String telephone_number;
+    private Person person;
+}
+````
+Создадим простой интерфейс для добавления, модификации и удаления записей для всех моделей.
+````java
+public interface SimpleAction<E> {
+    void add(E element);
+
+    E update(E element);
+
+    void delete(int id);
+}
+````
+Создадим ещё один интерфейс, который будет иметь простые методы из интерфейса SimpleAction<E> и специфичные методы, для извлечения Person из базы данных.
+````java
+public interface PersonDao extends SimpleAction<Person> {
+    List<Person> findAll();
+
+    List<Person> findByFirstName(String firstName);
+
+    String findFirstNameById(int id);
+
+    String findLastNameById(int id);
+}
+````                 
  

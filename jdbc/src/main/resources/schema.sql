@@ -15,6 +15,6 @@ CREATE TABLE contacts (
     id SERIAL PRIMARY KEY,
     model_id INT REFERENCES models(id),
     telephone_number VARCHAR (25),
-    contact_id INT references persons(id),
-    UNIQUE (id, telephone_type)
+    person_id INT references persons(id),
+    UNIQUE (model_id, person_id)
 );

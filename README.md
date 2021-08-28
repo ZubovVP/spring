@@ -1988,4 +1988,64 @@ public interface PersonDao extends SimpleAction<Person> {
     String findLastNameById(int id);
 }
 ````                 
- 
+Интерфейс PersonDao несколько специфичных методов, а также методы вставки, обновления и удаления, которые вместе объединяются в термин CRUD (create, read, update, delete).    
+Для того, чтобы упростить тестирование, мы добавим зависимость log4 модифицируем свойства указав DEBUG в качестве уровня регистрации в журнале для всех классов. При уровне DEBUG модуль JDBC в Spring будет выводить все лежащие в основе SQL-операторы, выполняемые в базе данных, поэтому мы будем знать что там  происходит, это очень удобно во время поиска синтаксических ошибок и их устранения.    
+Создадим файл log4j.properties, находящийся в папке src\main\resources.
+````properties
+log4j.rootLogger=DEBUG, console
+log4j.appender.console=org.apache.log4j.ConsoleAppender
+log4j.appender.console.layout=org.apache.log4j.PatternLayout
+log4j.appender.console.layout.ConversionPattern=%d{ISO8601} %5p %c:%M:%L - %m%n
+````
+### Исследование инфрастуктуры JDBC
+Инфраструктура JDBC предоставляет Java-приложениям стандартный способ доступа к данным, хранящимся в азе данных. В основе JDBC лежит драйвер, который позволяет Java-коду получать доступ к базе данных.    
+Обычно база данных создаёт поток или порождает дочерний процесс для каждого подключения. Однако количество параллельных подключений, как правило, ограничено, и большое число открытых подключений замедлит работы базы данных. Перед тем, как Spring помогает справиться с этой сложностью, но сначала нужно посмотреть, каким образом выбираются, удаляются и обновляются данные на чистом JDBC.    
+Создадим простую форму реализации интерфейса PersonDao для взаимодействия с базой данных посредством чистого JDBC.
+Перед созданием класса, создадим файл settings.properties, который будет располагаться в src\main\resources. Данный файл будет содержать информацию, которая потребуется для подключения к базе данных.
+````properties
+url=jdbc:postgresql://localhost:5432/persons_db
+username=postgres
+password=password
+driver-class-name=org.postgresql.Driver
+````
+Создадим класс PlainPersonDao, который будет организовывать все запланированные операции с базой данных.
+```` java
+public class PlainPersonDao implements PersonDao{
+    
+    @Override
+    public List<Person> findAll() {
+        return null;
+    }
+
+    @Override
+    public List<Person> findByFirstName(String firstName) {
+        return null;
+    }
+
+    @Override
+    public String findFirstNameById(int id) {
+        return null;
+    }
+
+    @Override
+    public String findLastNameById(int id) {
+        return null;
+    }
+
+    @Override
+    public void add(Person element) {
+
+    }
+
+    @Override
+    public Person update(Person element) {
+        return null;
+    }
+
+    @Override
+    public void delete(int id) {
+
+    }
+}
+````  
+Создадим

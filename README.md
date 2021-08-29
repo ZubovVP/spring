@@ -60,6 +60,8 @@
 ***Поддержка JDBC в Spring***
 
 0. [Модель данных для дальнейших примеров](#Модель-данных-для-дальнейших-примеров)
+1. [Исследование инфрастуктуры JDBC](#Исследование-инфрастуктуры-JDBC)
+2. [Инфраструктура JDBC в Spring](#Инфраструктура-JDBC-в-Spring)
 
 
 ---
@@ -1777,7 +1779,8 @@ After method doSomethingOne
 ----------------
 BeanFirst: starting method doSomethingTwo
 ````
-Как видно из результата, совет был применён только к одному методу doSomethingOne(), у которого была установленна аннотация @AdviceRequired.
+Как видно из результата, совет был применён только к одному методу doSomethingOne(), у которого была установленна аннотация @AdviceRequired. Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/pointcut/annotation).
+
 ### Основы введений
  Введения представляет собой часть функциональных возможностей АОП, доступных в Spring. За счёт использования введений можно динамически добавлять новую функциональность к существующему объекту.
  В Spring введения трактуются как специальный тип совета, точнее - как специальный тип совета "вокруг". ___Поскольку введения применяются исключительно на уровне классов, использовать срезы с введениями нельзя___. Чтобы построить введение, необходимо создать класс, который унаследован от DelegatingIntroductionInterceptor и реализуете интерфейсы предназначенный для введения.
@@ -1894,7 +1897,7 @@ public class TestModified {
 ````
 Как и ожидалось, обе проверки instanceof возвращают true. Обратите внимание, когда мы поменяли имя на то, которое раньше стояло, то значение модификации вернуло false. Однако финальный вызов метода isModified(), после того как мы поменяли на новое имя, возвращает true, указывая на то, что объект изменился.\
 Введения являются одним из наиболее мощных средств АОП в Spring; они позволяют не только расширять функциональность существующих методов, но также динамически расширять набор интерфейсов и реализации объектов. Использование введений - это отличный способ реализации сквозной логики, с которой приложение взаимодействует через чётко определённые интерфейсы. В общем, это такая разновидность логики, которую желательно применять декларативно, а не программно.\
-Очевидно введения работают через проки, они добавляют определённый объём накладных расходов. Все методы прокси считаются снабжёнными советом, т.к. применять срезы в сочетании с введениями не допускается. Тем не менее, учитывая многочисленность служб, которые можно реализовать с помощью введений, накладыне расходы связанные с производительностью, является лишь небольшой платой за сокращения объёма кода, а также за повышенную устойчивость и улучшение возможности сопровождения.
+Очевидно введения работают через проки, они добавляют определённый объём накладных расходов. Все методы прокси считаются снабжёнными советом, т.к. применять срезы в сочетании с введениями не допускается. Тем не менее, учитывая многочисленность служб, которые можно реализовать с помощью введений, накладыне расходы связанные с производительностью, является лишь небольшой платой за сокращения объёма кода, а также за повышенную устойчивость и улучшение возможности сопровождения. Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/aop/src/main/java/ru/zubov/introduction).
 
 ---
 ##Поддержка JDBC в Spring
@@ -1933,15 +1936,46 @@ CREATE TABLE contacts (
 INSERT INTO models (model) VALUES ('Mobile');
 INSERT INTO models (model) VALUES ('Home');
 INSERT INTO persons (first_name, last_name, birth_date) VALUES ('Duke', 'Zubov', '1992-03-04');
-INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (1, 89997502222, 1);
-INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (2, 8499500390, 1);
+INSERT INTO contacts (model_id, telephone_number, person_id) VALUES (1, 89997502222, 1);
+INSERT INTO contacts (model_id, telephone_number, person_id) VALUES (2, 8499500390, 1);
 INSERT INTO persons (first_name, last_name, birth_date) VALUES ('Alex', 'Alexsandrov', '1989-09-05');
-INSERT INTO contacts (model_id, telephone_number, contact_id) VALUES (1, 89156540255, 2);
+INSERT INTO contacts (model_id, telephone_number, person_id) VALUES (1, 89156540255, 2);
 ````
+Добавим обходимые зависимости в наш проект.    
+````xml
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-dbcp2</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+````
+Версии данных зависимостей указаны отдельно в тегах properties файла pom.xml.    
 Далее будет приведены примеры добавления, извлечения и изменения данных из базы данных через JDBC и отображения результирующего набора непосредственно на [POJO](https://ru.wikipedia.org/wiki/POJO) объекты. Ниже представлены классы предметной области Person, Model и Contact.
 ````java
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class Person {
     private int id;
     private String first_name;
@@ -1952,6 +1986,7 @@ public class Person {
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class Model {
     private int id;
     private String model;
@@ -1959,6 +1994,7 @@ public class Model {
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class Contact {
     private int id;
     private Model model;
@@ -2048,4 +2084,183 @@ public class PlainPersonDao implements PersonDao{
     }
 }
 ````  
-Создадим
+Создадим вручную создание для подключения к базе данных, данный подход приведёт к занимательному снижению производительности и добавит дополнительную нагрузку на базу данных, поскольку подключение должно будет устанавливаться для каждого запроса. Однако если оставлять подключение открытым, то сервер базы данных может даже прекратить работу.
+````java
+public class PlainPersonDao implements PersonDao {
+    private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
+
+    private Connection getConnection() {
+        Connection connection = null;
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("settings.properties")) {
+            Properties props = new Properties();
+            props.load(in);
+            Class.forName(props.getProperty("driver-class-name"));
+            connection = DriverManager.getConnection(props.getProperty("url"), props.getProperty("username"), props.getProperty("password"));
+            connection.setAutoCommit(false);
+            LOGGER.info("--------CONNECTION TO DATABASE - COMPLETE--------");
+        } catch (Exception e) {
+            LOGGER.info("--------CONNECTION TO DATABASE - ERROR--------");
+            LOGGER.error(e.getMessage(), e);
+        }
+        return connection;
+    }
+
+    @Override
+    public List<Person> findAll() {
+        return null;
+    }
+
+    @Override
+    public List<Person> findByFirstName(String firstName) {
+        return null;
+    }
+
+    @Override
+    public String findFirstNameById(int id) {
+        return null;
+    }
+
+    @Override
+    public String findLastNameById(int id) {
+        return null;
+    }
+
+    @Override
+    public void add(Person element) {
+
+    }
+
+    @Override
+    public Person update(Person element) {
+        return null;
+    }
+
+    @Override
+    public void delete(int id) {
+
+    }
+}
+````
+Хотя этот код далёк от завершения, он даёт представление о том, какие действия должны предприниматься для управления подключением JDBC. Данный код не работает с пулом подключений, который является распространённым способом более эффективного управления подключениями к базе данных.
+Ниже представлена реализация таких методов как findAll(), add() и delete() интерфейса PersonDao.
+```` java
+@Override
+    public List<Person> findAll() {
+        List<Person> result = new ArrayList<>();
+        LOGGER.info("--------GET ALL PERSONS - START--------");
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM persons");
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                Person person = new Person();
+                person.setId(resultSet.getInt("id"));
+                person.setFirst_name(resultSet.getString("first_name"));
+                person.setLast_name(resultSet.getString("last_name"));
+                person.setBirthDate(resultSet.getDate("birth_date"));
+                result.add(person);
+            }
+        } catch (SQLException throwables) {
+            LOGGER.error(throwables.getMessage(), throwables);
+        }
+        LOGGER.info("--------GET ALL PERSONS - COMPLETE--------");
+        return result;
+    }
+
+@Override
+    public void add(Person element) {
+        LOGGER.info("--------ADD PERSON IN A TABLE OF PERSONS - START--------");
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO persons (first_name, last_name, birth_date) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+            statement.setString(1, element.getFirst_name());
+            statement.setString(2, element.getLast_name());
+            statement.setDate(3, element.getBirthDate());
+            statement.executeUpdate();
+            ResultSet generatedKey = statement.getGeneratedKeys();
+            if (generatedKey.next()) {
+                element.setId(generatedKey.getInt(1));
+            }
+            connection.commit();
+        } catch (SQLException throwables) {
+            LOGGER.error(throwables.getMessage(), throwables);
+        }
+        LOGGER.info("--------ADD PERSON IN A TABLE OF PERSONS - COMPLETE--------");
+    }
+
+@Override
+    public void delete(int id) {
+        LOGGER.info("--------DELETE PERSON FROM A TABLE OF PERSONS - START--------");
+        try (Connection connection = getConnection();
+        PreparedStatement statement = connection.prepareStatement("DELETE FROM persons WHERE id =?")){
+            statement.setInt(1, id);
+            statement.execute();
+            connection.commit();
+        } catch (SQLException throwables) {
+            LOGGER.error(throwables.getMessage(), throwables);
+        }
+        LOGGER.info("--------DELETE PERSON FROM A TABLE OF PERSONS - COMPETE--------");
+    }
+````
+Продемонстрируем работу реализованных ранее методов.
+````java
+public class TestAddFindAllDelete {
+    private static final PersonDao personDao = new PlainPersonDao();
+
+    public static void main(String[] args) {
+        System.out.println("Начальный список людей");
+        listAllPerson();
+        System.out.println("-----------------");
+        System.out.println("Вставка нового человека в БД");
+        Person person = new Person();
+        person.setFirst_name("Tom");
+        person.setLast_name("Smith");
+        person.setBirthDate(new Date(
+                (new GregorianCalendar(2001,10, 1)).getTime().getTime()));
+        personDao.add(person);
+        listAllPerson();
+        System.out.println("-----------------");
+        System.out.println("Удаление созданного человека из БД");
+        personDao.delete(person.getId());
+        listAllPerson();
+    }
+
+    private static void listAllPerson() {
+        for (Person person : personDao.findAll()) {
+            System.out.println(person);
+        }
+    }
+}
+````
+Запуск программы выше даёт следующий результат (предполагается что вы ранее локально создали базу данных, добавили в неё таблицы расположенные по пути src\main\resources\schema.sql и наполнили таблицы данными, которы расположены по пути src\main\resources\insert.sql).
+````text
+Начальный список людей
+2021-08-29 02:05:35,840  INFO ru.zubov.App:findAll:43 - --------GET ALL PERSONS - START--------
+2021-08-29 02:05:36,181  INFO ru.zubov.App:getConnection:32 - --------CONNECTION TO DATABASE - COMPLETE--------
+2021-08-29 02:05:36,242  INFO ru.zubov.App:findAll:58 - --------GET ALL PERSONS - COMPLETE--------
+Person(id=1, first_name=Duke, last_name=Zubov, birthDate=1992-03-04, contacts=null)
+Person(id=2, first_name=Alex, last_name=Alexsandrov, birthDate=1989-09-05, contacts=null)
+-----------------
+Вставка нового человека в БД
+2021-08-29 02:05:36,268  INFO ru.zubov.App:add:79 - --------ADD PERSON IN A TABLE OF PERSONS - START--------
+2021-08-29 02:05:36,342  INFO ru.zubov.App:getConnection:32 - --------CONNECTION TO DATABASE - COMPLETE--------
+2021-08-29 02:05:36,348  INFO ru.zubov.App:add:94 - --------ADD PERSON IN A TABLE OF PERSONS - COMPLETE--------
+2021-08-29 02:05:36,348  INFO ru.zubov.App:findAll:43 - --------GET ALL PERSONS - START--------
+2021-08-29 02:05:36,433  INFO ru.zubov.App:getConnection:32 - --------CONNECTION TO DATABASE - COMPLETE--------
+2021-08-29 02:05:36,436  INFO ru.zubov.App:findAll:58 - --------GET ALL PERSONS - COMPLETE--------
+Person(id=1, first_name=Duke, last_name=Zubov, birthDate=1992-03-04, contacts=null)
+Person(id=2, first_name=Alex, last_name=Alexsandrov, birthDate=1989-09-05, contacts=null)
+Person(id=3, first_name=Tom, last_name=Smith, birthDate=2001-11-01, contacts=null)
+-----------------
+Удаление созданного человека из БД
+2021-08-29 02:05:36,437  INFO ru.zubov.App:delete:104 - --------DELETE PERSON FROM A TABLE OF PERSONS - START--------
+2021-08-29 02:05:36,498  INFO ru.zubov.App:getConnection:32 - --------CONNECTION TO DATABASE - COMPLETE--------
+2021-08-29 02:05:36,504  INFO ru.zubov.App:delete:113 - --------DELETE PERSON FROM A TABLE OF PERSONS - COMPETE--------
+2021-08-29 02:05:36,505  INFO ru.zubov.App:findAll:43 - --------GET ALL PERSONS - START--------
+2021-08-29 02:05:36,566  INFO ru.zubov.App:getConnection:32 - --------CONNECTION TO DATABASE - COMPLETE--------
+2021-08-29 02:05:36,569  INFO ru.zubov.App:findAll:58 - --------GET ALL PERSONS - COMPLETE--------
+Person(id=1, first_name=Duke, last_name=Zubov, birthDate=1992-03-04, contacts=null)
+Person(id=2, first_name=Alex, last_name=Alexsandrov, birthDate=1989-09-05, contacts=null)
+````
+В первом блоке отображаются начальные данные находящиеся в таблице persons. Второй блок строк показывает, что в таблицу persons была добавлена запись. Финальный блок производит удаление ранее добавленной записи и отображения записей в таблице persons. Подробнее с программным кодом можно ознакомиться [(тут)](https://github.com/ZubovVP/spring/tree/master/jdbc/src/main/java/ru/zubov).        
+Как видно, большой объём кода нуждается в перемещении его во вспомогательный класс или что ещё хуже в каждом созданном классе Dao у нас будет происходить дублирования кода. Это главный недостаток с точки зрения разработчика приложений - это приводит к затрачиванию большого количества времени. Чем больше вспомогательного кода нужно написать, тем больше проверяемых исключений придётся проверить и тем больше ошибок можно внести в код.    
+Далее будет продемонстрировано как Spring позволяет сократить дублирующий код и позволяет сосредотачиваться только на написании специальной логики, которая должна быть выполнена. Кроме этого, широкая поддержка JDBC в Spring также упрощает решения задач.
+### Инфраструктура JDBC в Spring

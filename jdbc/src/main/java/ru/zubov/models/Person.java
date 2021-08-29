@@ -2,6 +2,8 @@ package ru.zubov.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.sql.Date;
 import java.util.List;
 
@@ -15,6 +17,7 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class Person {
     private int id;
     private String first_name;

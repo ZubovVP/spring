@@ -62,6 +62,7 @@
 0. [Модель данных для дальнейших примеров](#Модель-данных-для-дальнейших-примеров)
 1. [Исследование инфрастуктуры JDBC](#Исследование-инфрастуктуры-JDBC)
 2. [Инфраструктура JDBC в Spring](#Инфраструктура-JDBC-в-Spring)
+3. [Подключение к базе данных](#Подключение-к-базе-данных)
 
 
 ---
@@ -2264,3 +2265,42 @@ Person(id=2, first_name=Alex, last_name=Alexsandrov, birthDate=1989-09-05, conta
 Как видно, большой объём кода нуждается в перемещении его во вспомогательный класс или что ещё хуже в каждом созданном классе Dao у нас будет происходить дублирования кода. Это главный недостаток с точки зрения разработчика приложений - это приводит к затрачиванию большого количества времени. Чем больше вспомогательного кода нужно написать, тем больше проверяемых исключений придётся проверить и тем больше ошибок можно внести в код.    
 Далее будет продемонстрировано как Spring позволяет сократить дублирующий код и позволяет сосредотачиваться только на написании специальной логики, которая должна быть выполнена. Кроме этого, широкая поддержка JDBC в Spring также упрощает решения задач.
 ### Инфраструктура JDBC в Spring
+Поддержка JDBC В Spring разделена на пять пакетов, которые описаны ниже в таблице.
+
+| Пакет | Описание 
+|:---:|:--------:|
+| org.springframework.jdbc.core | Содержит ядро для классов JDBC в Spring. Пакет включает в себя класс JdbcTemplate, который упрощает программирование операций для базы данных с помощью JDBC.    
+| org.springframework.jdbc.datasource | Содержит вспомогательные классы и реализации DataSource. Множество пакетов предоставляющие поддержку для встроенных баз данных, инициализации баз данных и разнообразных механизмом поиска в источниках данных. 
+| org.springframework.jdbc.object | Содержит классы, которые помогают преобразовывать данные, возвращаемые из базы, в объекты или списки объектов. 
+| org.springframework.jdbc.support | Одним из самых важным в этом пакет можено отметить поддержка трансляции SQLException. Это позволяет Spring распознавать код ошибки и отображать их на более высоком уровне.
+| org.springframework.jdbc.config | Содержит класы, которые поддерживают конфигурацию JDBC внутри ApplicationContext. 
+ 
+### Подключение к базе данных
+Попробуем реализовать код, который был написан выше, но с использованием Spring. Для начала произведём подключение к базе данных с использованием Spring.    
+Для управления подключением к базе данных можно использовать платформу Spring, определив бин, который реализует интерфейс javax.sql.DataSource. Отличие между DataSource и Connection состоит в том, что DataSource предоставляет и управляет набором реализаций Connection. Простейшей реализацией DataSource является DriverManagerDataSource. DriverManagerDataSource обращается к DriverManager для получения подключения (DriverManagerDataSource не поддерживает пул подключений к базе данных, что делает этот клас неподходящим ни для каких целей, кроме тестирования). Конфигурация DriverManagerDataSource довольно проста, поэтому его удобно использовать для тестирования. В реальных приложениях можно применять доступный в рамках проекта Apache Commons класс BasicDataSource.
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"
+          p:driverClassName="${driver-class-name}"
+          p:url="${url}"
+          p:username="${username}"
+          p:password="${password}"/>
+    
+    <context:property-placeholder location="settings.properties"/>
+</beans>
+````
+ Информация о подключении к базе данных обычно храниться в файле свойств для упрощения обслуживания и модификации. Ниже показано содержимое файла settings.properties, из которого заполнитель свойств Spring будет загружать информацию о подключении.
+ ````properties
+url=jdbc:postgresql://localhost:5432/persons_db
+username=postgres
+password=password
+driver-class-name=org.postgresql.Driver
+````

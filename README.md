@@ -63,6 +63,7 @@
 1. [Исследование инфрастуктуры JDBC](#Исследование-инфрастуктуры-JDBC)
 2. [Инфраструктура JDBC в Spring](#Инфраструктура-JDBC-в-Spring)
 3. [Подключение к базе данных](#Подключение-к-базе-данных)
+4. [Использование источников данных в классах DAO](#Использование-источников-данных-в-классах-DAO)
 
 
 ---
@@ -2303,4 +2304,72 @@ url=jdbc:postgresql://localhost:5432/persons_db
 username=postgres
 password=password
 driver-class-name=org.postgresql.Driver
+````
+Начиная с версии 3.0, платформа Spring позволяет автоматически запскать базу данных и делает её доступной для приложения в виде источника данных. Ниже пказана конфигарция встроенной баззы данных.
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+    <jdbc:embedded-database id="data" type="H2">
+        <jdbc:script location="schema.sql"/>
+        <jdbc:script location="insert.sql"/>
+    </jdbc:embedded-database>
+</beans>
+````
+Файл с созданием дб и добавлением в него записей лежит в папке resources. Важно, что порядок следования сценариев очень важен: файл с командами DDL всегда должен идти первым, а за ним файл с командами DML.    
+Поддержка встроенной базы данных исключительно полезно при локальной разработке или модульном тестировании. Далее будет применяться встроенная база данных для запуска кода примеров.
+### Использование источников данных в классах DAO
+Для реализации примера создадим интерфейс PesonDao.
+````java
+public interface PersonDao  {
+    String findLastNameById(int id);   
+}
+````
+В качестве простой реализации мы давим свойство dataSource в класс JdbcPersonDao.
+````java
+public class JdbcPersonDao implements PersonDao {
+    private DataSource dataSource;
+
+    public JdbcPersonDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+...
+}
+````
+Теперь мы можем сообщить Spring о необходимости конфигурирования бина PersonDao с использованием реализации JdbcPersonDao и установки свойства dataSource (содержимое файла app-context-xml.xml показано ниже)
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+
+    <jdbc:embedded-database id="dataSource" type="H2">
+        <jdbc:script location="schema.sql"/>
+        <jdbc:script location="insert.sql"/>
+    </jdbc:embedded-database>
+
+    <bean id="personDao" class="ru.zubov.db.JdbcPersonDao"
+          p:dataSource-ref="dataSource"/>
+    <context:property-placeholder location="settings.properties"/>
+</beans>
+````
+Для поддержки базы данных H2 необходимо добавить к проекту соответствующую зависимость.
+````xml
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <version>1.4.200</version>
+    <scope>test</scope>
+</dependency>
 ````

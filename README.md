@@ -64,6 +64,7 @@
 2. [Инфраструктура JDBC в Spring](#Инфраструктура-JDBC-в-Spring)
 3. [Подключение к базе данных](#Подключение-к-базе-данных)
 4. [Использование источников данных в классах DAO](#Использование-источников-данных-в-классах-DAO)
+5. [Использование JdbcTemplate в классе DAO](#Использование-JdbcTemplate-в-классе-DAO)
 
 
 ---
@@ -2370,6 +2371,78 @@ public class JdbcPersonDao implements PersonDao {
     <groupId>com.h2database</groupId>
     <artifactId>h2</artifactId>
     <version>1.4.200</version>
-    <scope>test</scope>
 </dependency>
+````
+Платформа Spring создаст бин personDao за счёт получения экземпляра класса JdbcPersonDao со свойством dataSource, установленным в бин dataSource. Реализовав интерфейс InitializingBean (представив реализацию метода afterPropertiesSet()) мы гарантируем, что все обязательные свойства JdbcPersonDao корректным образом будут установлены.
+````java
+public class JdbcPersonDao implements PersonDao, InitializingBean {
+    private DataSource dataSource;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+  ....
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if(dataSource == null) {
+            throw new BeanCreationException("DataSource в классе JdbcPersonDao не должен быть равен null");
+        }
+    }
+}
+````
+### Использование JdbcTemplate в классе DAO
+Класс JdbcTemplate предоставляет ядро поддержки JDBC в Spring. Он способен выполнять все типы SQL-запросов. Класс JdbcTemplate позволяет отправлять базе данных SQL-оператор любого типа и возвращать результат также любого типа.
+#### Использование JdbcTemplate в классе DAO
+Для инициализации JdbcTemplate достаточно просто в экземпляр класса передать объект источника данных.
+````java
+    private DataSource dataSource;
+    private JdbcTemplate jdbcTemplate;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+    }
+````
+Объект JdbcTemplate является потокобезопасным.
+ #### Использование JdbcTemplate в классе DAO
+Реализуем для начала простой запрос, который возвращает одиночное значение. Например мы хотим извлекать имя фамилию человека по id. Для этого нам потребуется использовать JdbcTemplate. Ниже показана реализация данного метода findLastNameById() в классе JdbcPersonDao.
+````java
+public class JdbcPersonDao implements PersonDao, InitializingBean {
+    private DataSource dataSource;
+    private JdbcTemplate jdbcTemplate;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+    }
+
+    @Override
+    public String findLastNameById(int id) {
+        return this.jdbcTemplate.queryForObject("SELECT last_name FROM persons WHERE id = ?", String.class, new Object[]{id});
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (dataSource == null) {
+            throw new BeanCreationException("DataSource must be not null");
+        }
+    }
+}
+````
+Для извлечения значения используется метод queryForObject(). Первый аргумент - это SQL запрос, второй - это тип возвращаемого значения, а последний - это параметры, передаваемые в SQL запрос.
+Для тестирования создадим класс TestJdbcPersonDao и попробуем получить результат.
+````java
+public class TestJdbcPersonDao {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context-xml.xml");
+        PersonDao personDao = context.getBean("personDao", PersonDao.class);
+        System.out.println("Last name person (have id = 1) is - " + personDao.findLastNameById(1));
+    }
+}
+````
+Как и можно было ожидать, запуск этой программы даёт следующий вывод:
+````text
+Last name person (have id = 1) is - Zubov
 ````

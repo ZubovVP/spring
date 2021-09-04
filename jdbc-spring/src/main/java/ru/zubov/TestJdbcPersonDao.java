@@ -17,7 +17,5 @@ public class TestJdbcPersonDao {
                 "app-context-xml.xml");
         PersonDao personDao = context.getBean("personDao", PersonDao.class);
         System.out.println("Last name person (have id = 1) is - " + personDao.findLastNameById(1));
-        System.out.println("Last name person (have id = 2) is - " + personDao.findLastNameById(2));
-
     }
 }

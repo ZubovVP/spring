@@ -65,6 +65,7 @@
 3. [Подключение к базе данных](#Подключение-к-базе-данных)
 4. [Использование источников данных в классах DAO](#Использование-источников-данных-в-классах-DAO)
 5. [Использование JdbcTemplate в классе DAO](#Использование-JdbcTemplate-в-классе-DAO)
+6. [Использование NamedParameterJdbcTemplate](#Использование-NamedParameterJdbcTemplate)
 
 
 ---
@@ -2443,6 +2444,49 @@ public class TestJdbcPersonDao {
 }
 ````
 Как и можно было ожидать, запуск этой программы даёт следующий вывод:
+````text
+Last name person (have id = 1) is - Zubov
+````
+ #### Использование NamedParameterJdbcTemplate
+ Некоторые разработчики предпочитают использовать именованные параметры, чтобы гарантировать точную привязку каждого параметра. Соответствующую поддержку в Spring обеспечивает разновидность класса JdbcTemplate по имени NamedParameterJdbcTemplate.    
+ Инициализация NamedParameterJdbcTemplate совпадает с инициализацией JdbcTemplate, так что нужно просто объявить переменную типа NamedParameterJdbcTemplate и создать новый её экземпляр в методе setDataSource().
+ ````java
+ public class JdbcPersonDao implements PersonDao, InitializingBean {
+  private DataSource dataSource;
+    private NamedParameterJdbcTemplate jdbcTemplate;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+        this.jdbcTemplate = new NamedParameterJdbcTemplate(this.dataSource);
+    }
+
+    @Override
+    public String findLastNameById(int id) {
+        Map<String, Object> namedParameters = new HashMap<>();
+        namedParameters.put("personId", id);
+        return this.jdbcTemplate.queryForObject("SELECT last_name FROM persons WHERE id = :personId", namedParameters, String.class);
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (dataSource == null) {
+            throw new BeanCreationException("DataSource must be not null");
+        }
+    }
+}
+ ````
+Вместо заполнителя ? применяется именованный параметр (:personId). Далее приведён модифицированный код тестовой программы.
+````java
+public class TestNamedJdbcPersonDao {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context-xml.xml");
+        PersonDao personDao = context.getBean("namedPersonDao", PersonDao.class);
+        System.out.println("Last name person (have id = 1) is - " + personDao.findLastNameById(1));
+    }
+}
+````
+Запустив программу снова, на этот раз с применением именованных параметров, мы получим следующий вывод.
 ````text
 Last name person (have id = 1) is - Zubov
 ````

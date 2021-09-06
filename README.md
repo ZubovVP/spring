@@ -66,6 +66,8 @@
 4. [Использование источников данных в классах DAO](#Использование-источников-данных-в-классах-DAO)
 5. [Использование JdbcTemplate в классе DAO](#Использование-JdbcTemplate-в-классе-DAO)
 6. [Использование NamedParameterJdbcTemplate](#Использование-NamedParameterJdbcTemplate)
+7. [Извлечение объектов с помощью RowMapper<T>](#Извлечение-объектов-с-помощью-RowMapper<T>)
+8. [Извлечение вложенных объектов с помощью ResultSetExtractor](#Извлечение-вложенных-объектов-с-помощью-ResultSetExtractor)
 
 
 ---
@@ -2490,3 +2492,47 @@ public class TestNamedJdbcPersonDao {
 ````text
 Last name person (have id = 1) is - Zubov
 ````
+#### Извлечение объектов с помощью RowMapper<T>
+Большую часть времени вместо извлечения одиночного значения вам потребуется запрашивать одну или более строк и затем трансформировать каждую строку в соответствующий объект. Интерфейс  RowMapper<T> позволяет преобразовывать результирующий набор JDBC на объекты POJO. Попробуем реализовать метод findAll() с использованием интерфейса RowMapper<T>.
+Добавим в интерфейс PersonDao новый метод findAll().
+````java
+public interface PersonDao {
+    String findLastNameById(int id);
+    List<Person> findAll();
+}
+````
+Реализуем метод findAll() в классе JdbcPersonDao.
+````text
+@Override
+    public List<Person> findAll() {
+        String sql = "SELECT id, first_name, last_name, birth_date FROM persons";
+        return this.jdbcTemplate.query(sql, (resultSet, i) -> {
+            Person person = new Person();
+            person.setId(resultSet.getInt("id"));
+            person.setFirst_name(resultSet.getString("first_name"));
+            person.setLast_name(resultSet.getString("last_name"));
+            person.setBirthDate(resultSet.getDate("birth_date"));
+            return person;
+        });
+    }
+````
+Создадим класс для тестирования написанного ранее метода.
+````java
+public class TestJdbcPersonDaoFindAll {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context-xml.xml");
+        PersonDao personDao = context.getBean("personDao", PersonDao.class);
+        for (Person person : personDao.findAll()) {
+            System.out.println(person);
+        }
+    }
+}
+````
+Запуск этой программы даёт следующий результат.
+````text
+Person(id=1, first_name=Duke, last_name=Zubov, birthDate=1992-03-04, contacts=null)
+Person(id=2, first_name=Alex, last_name=Alexandrov, birthDate=1989-09-05, contacts=null)
+````
+#### Извлечение вложенных объектов с помощью ResultSetExtractor
+

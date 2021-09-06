@@ -3,11 +3,10 @@ package ru.zubov.db;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import ru.zubov.models.Person;
 
 import javax.sql.DataSource;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * Created by Intellij IDEA.
@@ -28,6 +27,19 @@ public class JdbcPersonDao implements PersonDao, InitializingBean {
     @Override
     public String findLastNameById(int id) {
         return this.jdbcTemplate.queryForObject("SELECT last_name FROM persons WHERE id = ?", String.class, new Object[]{id});
+    }
+
+    @Override
+    public List<Person> findAll() {
+        String sql = "SELECT id, first_name, last_name, birth_date FROM persons";
+        return this.jdbcTemplate.query(sql, (resultSet, i) -> {
+            Person person = new Person();
+            person.setId(resultSet.getInt("id"));
+            person.setFirst_name(resultSet.getString("first_name"));
+            person.setLast_name(resultSet.getString("last_name"));
+            person.setBirthDate(resultSet.getDate("birth_date"));
+            return person;
+        });
     }
 
     @Override

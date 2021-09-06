@@ -1,5 +1,9 @@
 package ru.zubov.db;
 
+import ru.zubov.models.Person;
+
+import java.util.List;
+
 /**
  * Created by Intellij IDEA.
  * User: Vitaly Zubov.
@@ -7,8 +11,10 @@ package ru.zubov.db;
  * Version: $.
  * Date: 27.08.2021.
  */
-public interface PersonDao  {
+public interface PersonDao {
 
     String findLastNameById(int id);
+
+    List<Person> findAll();
 
 }

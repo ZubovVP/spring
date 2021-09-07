@@ -17,4 +17,6 @@ public interface PersonDao {
 
     List<Person> findAll();
 
+    List<Person> findAllWithDetail();
+
 }

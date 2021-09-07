@@ -18,5 +18,5 @@ public class Contact {
     private int id;
     private Model model;
     private String telephone_number;
-    private Person person;
+    private int personId;
 }

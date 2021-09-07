@@ -2535,4 +2535,52 @@ Person(id=1, first_name=Duke, last_name=Zubov, birthDate=1992-03-04, contacts=nu
 Person(id=2, first_name=Alex, last_name=Alexandrov, birthDate=1989-09-05, contacts=null)
 ````
 #### Извлечение вложенных объектов с помощью ResultSetExtractor
+В прошлом примере мы не извлекали данные contacts из дочерней таблицы (contacts). Упомянутый ранее интерфейс RowMapper<T> подходит только для отображения строки на одиночный объект предметной области. Для более сложной объектной структуры должен использоваться интерфейс ResultSetExtractor. Для демонстрации работы данного интерфейса, к интерфейсу PersonDay добавим ещё один метод по имени findAllWithDetail(). Данный метод наполнит людей списком с контактной информацией о телефонах. 
+````java
+public interface PersonDao {
+    String findLastNameById(int id);
+    List<Person> findAll();
+    List<Person> findAllWithDetail();
+}
+````
+Реализация метода findAllWithDetail() выглядит следующим образом.
+````java
+....
 
+ @Override
+    public List<Person> findAllWithDetail() {
+        String sql = "SELECT p.id, p.first_name, p.last_name, p.birth_date, c.id AS contact_id, c.person_id, c.telephone_number, m.id AS model_id, m.model FROM persons AS p" +
+                "    RIGHT JOIN contacts c on p.id = c.id" +
+                "    RIGHT JOIN models AS m ON c.model_id = m.id;";
+        return this.jdbcTemplate.query(sql, resultSet -> {
+            Map<Integer, Person> personMap = new HashMap<>();
+            Person person;
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                if (id == 0) {
+                    id = resultSet.getInt("person_id");
+                }
+                person = personMap.get(id);
+                if (person == null) {
+                    person = new Person();
+                    person.setId(id);
+                    person.setFirst_name(resultSet.getString("first_name"));
+                    person.setLast_name(resultSet.getString("last_name"));
+                    person.setBirthDate(resultSet.getDate("birth_date"));
+                    person.setContacts(new ArrayList<>());
+                    personMap.put(id, person);
+                }
+                int contactId = resultSet.getInt("contact_id");
+                if (contactId > 0) {
+                    Contact contact = new Contact();
+                    contact.setId(contactId);
+                    contact.setPersonId(id);
+                    contact.setTelephone_number(resultSet.getString("telephone_number"));
+                    contact.setModel(new Model(resultSet.getInt("model_id"), resultSet.getString("model")));
+                    person.getContacts().add(contact);
+                }
+            }
+            return personMap.values().stream().collect(Collectors.toList());
+        });
+    }
+````

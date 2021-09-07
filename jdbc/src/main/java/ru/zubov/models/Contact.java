@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Contact {
     private int id;
-    private Model model;
+    private int modelId;
     private String telephone_number;
-    private Person person;
+    private int personId;
 }

@@ -2,17 +2,13 @@ package ru.zubov.db;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import ru.zubov.models.Contact;
 import ru.zubov.models.Model;
 import ru.zubov.models.Person;
 
 
 import javax.sql.DataSource;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,9 +51,9 @@ public class JdbcPersonDao implements PersonDao, InitializingBean {
 
     @Override
     public List<Person> findAllWithDetail() {
-        String sql = "SELECT p.id, p.first_name, p.last_name, p.birth_date, c.id AS contact_id, c.person_id, c.telephone_number, m.id AS model_id, m.model FROM persons AS p" +
-                "    RIGHT JOIN contacts c on p.id = c.id" +
-                "    RIGHT JOIN models AS m ON c.model_id = m.id;";
+        String sql = "SELECT p.id, p.first_name, p.last_name, p.birth_date, c.id AS contact_id, c.person_id, c.telephone_number, m.id AS model_id, m.model FROM contacts AS c" +
+                "     LEFT JOIN persons AS p ON  p.id = c.person_id" +
+                "     LEFT JOIN models m on c.model_id = m.id;";
         return this.jdbcTemplate.query(sql, resultSet -> {
             Map<Integer, Person> personMap = new HashMap<>();
             Person person;
@@ -80,7 +76,7 @@ public class JdbcPersonDao implements PersonDao, InitializingBean {
                 if (contactId > 0) {
                     Contact contact = new Contact();
                     contact.setId(contactId);
-                    contact.setPerson(personMap.get(id));
+                    contact.setPerson(person);
                     contact.setTelephone_number(resultSet.getString("telephone_number"));
                     contact.setModel(new Model(resultSet.getInt("model_id"), resultSet.getString("model")));
                     person.getContacts().add(contact);

@@ -80,7 +80,7 @@ public class JdbcPersonDao implements PersonDao, InitializingBean {
                 if (contactId > 0) {
                     Contact contact = new Contact();
                     contact.setId(contactId);
-                    contact.setPersonId(id);
+                    contact.setPerson(personMap.get(id));
                     contact.setTelephone_number(resultSet.getString("telephone_number"));
                     contact.setModel(new Model(resultSet.getInt("model_id"), resultSet.getString("model")));
                     person.getContacts().add(contact);

@@ -18,5 +18,15 @@ public class Contact {
     private int id;
     private Model model;
     private String telephone_number;
-    private int personId;
+    private Person person;
+
+    @Override
+    public String toString() {
+        return "Contact{" +
+                "id=" + id +
+                ", model=" + model +
+                ", telephone_number='" + telephone_number + '\'' +
+                ", personId=" + person.getId() +
+                '}';
+    }
 }

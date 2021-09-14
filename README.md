@@ -68,6 +68,10 @@
 6. [Использование NamedParameterJdbcTemplate](#Использование-NamedParameterJdbcTemplate)
 7. [Извлечение объектов с помощью RowMapper<T>](#Извлечение-объектов-с-помощью-RowMapper<T>)
 8. [Извлечение вложенных объектов с помощью ResultSetExtractor](#Извлечение-вложенных-объектов-с-помощью-ResultSetExtractor)
+9. [Добавление объектов с помощью JdbcTemplate](#Добавление-объектов-с-помощью-JdbcTemplate)
+10. [Изменение объектов с помощью JdbcTemplate](#Изменение-объектов-с-помощью-JdbcTemplate)
+11.[Удаление объектов с помощью JdbcTemplate](#Удаление-объектов-с-помощью-JdbcTemplate)
+
 
 
 ---
@@ -2597,4 +2601,178 @@ public class TestJdbcPersonDaoFindAllWithDetail {
     }
 }
 ````
-Запустив 
+Запустив тестовую программу, мы получаем следующий результат.
+````text
+Person{id=1, first_name='Duke', last_name='Zubov', birthDate=1992-03-04, contacts=[Contact{id=1, model=Model(id=1, model=Mobile), telephone_number='89997502222', personId=1}, Contact{id=2, model=Model(id=2, model=Home), telephone_number='8499500390', personId=1}]}
+Person{id=2, first_name='Alex', last_name='Alexandrov', birthDate=1989-09-05, contacts=[Contact{id=3, model=Model(id=1, model=Mobile), telephone_number='89156540255', personId=2}]}
+````
+Как видно, контактные сведения были тоже записаны в запрашиваемые объекты.
+
+#### Добавление объектов с помощью JdbcTemplate
+Добавим данный метод добавления в интерфейс PersonDao.
+````java
+public interface PersonDao {
+    String findLastNameById(int id);
+    List<Person> findAll();
+    List<Person> findAllWithDetail();
+    void add(Person person);
+}
+````
+Реализация метода add() выглядит следующим образом.
+````java
+....
+
+@Override
+    public void add(Person person) {
+            try {
+                  this.jdbcTemplate.update(
+                          "INSERT INTO persons (first_name, last_name, birth_date) values (?, ?, ?)",
+                          person.getFirst_name(), person.getLast_name(), person.getBirthDate());
+                  this.dataSource.getConnection().commit();
+              } catch (SQLException e) {
+                  e.printStackTrace();
+              }
+    }
+````
+Для тестирования написанного выше кода, создадим новый класс TestJdbcPersonDaoAdd.
+````java
+....
+public class TestJdbcPersonDaoAdd {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context-xml.xml");
+        PersonDao personDao = context.getBean("personDao", PersonDao.class);
+        for (Person person : personDao.findAll()) {
+            System.out.println(person);
+        }
+        Person personNew = new Person();
+        personNew.setFirst_name("Mike");
+        personNew.setLast_name("Petrov");
+        personNew.setBirthDate(new Date(System.currentTimeMillis()));
+        personDao.add(personNew);
+        System.out.println("Add new person");
+        for (Person person : personDao.findAll()) {
+            System.out.println(person);
+        }
+    }
+}
+````
+Запустив тестовую программу, мы получаем следующий результат.
+````text
+Person{id=1, first_name='Duke', last_name='Zubov', birthDate=1992-03-04, contacts=null}
+Person{id=2, first_name='Alex', last_name='Alexandrov', birthDate=1989-09-05, contacts=null}
+Add new person
+Person{id=1, first_name='Duke', last_name='Zubov', birthDate=1992-03-04, contacts=null}
+Person{id=2, first_name='Alex', last_name='Alexandrov', birthDate=1989-09-05, contacts=null}
+Person{id=3, first_name='Mike', last_name='Petrov', birthDate=2021-09-14, contacts=null}
+````
+
+
+#### Изменение объектов с помощью JdbcTemplate
+Добавим данный метод в интерфейс PersonDao.
+````java
+public interface PersonDao {
+    String findLastNameById(int id);
+    List<Person> findAll();
+    List<Person> findAllWithDetail();
+    void add(Person person);
+    void update(Person person);
+}
+````
+Процесс обновления крайне схож с ранее реализованными операциямии с БД, только у класса JdbcTemplate будет вызываться метод update(). Реализуем метод обновления в классе JdbcPersonDao.
+````java
+....
+
+@Override
+    public void update(Person person) {
+            try {
+                    this.jdbcTemplate.update(
+                            "UPDATE persons SET first_name = ?, last_name = ?, birth_date = ? WHERE id = ?",
+                            person.getFirst_name(), person.getLast_name(), person.getBirthDate(), person.getId());
+                    this.dataSource.getConnection().commit();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+    }
+````
+Для тестирования данного метода, создадим класс TestJdbcPersonDaoUpdate, который будет содержать следующую реализацию.
+````java
+public class TestJdbcPersonDaoUpdate {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context-xml.xml");
+        PersonDao personDao = context.getBean("personDao", PersonDao.class);
+        Person aimPerson = null;
+        System.out.println("Last name person with id = 1 is - " + personDao.findLastNameById(1));
+        for (Person person : personDao.findAllWithDetail()) {
+            if(person.getId() == 1){
+                aimPerson = person;
+            }
+        }
+        System.out.println("Update last name for person with id = 1.");
+        aimPerson.setLast_name("Ivanov");
+        personDao.update(aimPerson);
+        System.out.println("Last name person with id = 1 is - " + personDao.findLastNameById(1));
+    }
+}
+````
+Запустив тестовую программу, мы получаем следующий результат.
+````text
+Last name person with id = 1 is - Zubov
+Update last name for person with id = 1.
+Last name person with id = 1 is - Ivanov
+````
+Как видно, фамилия пользователя с id = 1 была изменена.
+
+#### Удаление объектов с помощью JdbcTemplate
+Добавим данный метод в интерфейс PersonDao.
+````java
+public interface PersonDao {
+    String findLastNameById(int id);
+    List<Person> findAll();
+    List<Person> findAllWithDetail();
+    void add(Person person);
+    void update(Person person);
+    void delete(int id);
+}
+````
+Процесс удаления схож с ранее реализованным методом update(). Реализуем метод удаления в классе JdbcPersonDao.
+````java
+....
+
+@Override
+    public void delete(int id) {
+        try {
+            this.jdbcTemplate.update("DELETE FROM persons WHERE id = ?", id);
+            this.dataSource.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }    
+}
+````
+Для тестирования данного метода, создадим класс TestJdbcPersonDaoDelete, который будет содержать следующую реализацию.
+````java
+public class TestJdbcPersonDaoDelete {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext(
+                "app-context-xml.xml");
+        PersonDao personDao = context.getBean("personDao", PersonDao.class);
+        for (Person person : personDao.findAll()) {
+            System.out.println(person);
+        }
+        personDao.delete(3);
+        System.out.println("Delete person with id = 3");
+        for (Person person : personDao.findAll()) {
+            System.out.println(person);
+        }
+    }
+}
+````
+Запустив тестовую программу, мы получаем следующий результат.
+````text
+Person{id=1, first_name='Duke', last_name='Zubov', birthDate=1992-03-04, contacts=null}
+Person{id=2, first_name='Alex', last_name='Alexandrov', birthDate=1989-09-05, contacts=null}
+Delete person with id = 1
+Person{id=2, first_name='Alex', last_name='Alexandrov', birthDate=1989-09-05, contacts=null}
+````
+

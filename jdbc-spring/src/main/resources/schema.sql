@@ -15,6 +15,6 @@ CREATE TABLE contacts (
     id SERIAL PRIMARY KEY,
     model_id INT REFERENCES models(id),
     telephone_number VARCHAR (25),
-    person_id INT references persons(id),
+    person_id INT references persons(id) ON DELETE CASCADE,
     UNIQUE (model_id, person_id)
 );

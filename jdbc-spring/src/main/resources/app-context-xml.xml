@@ -13,7 +13,7 @@
         <jdbc:script location="insert.sql"/>
     </jdbc:embedded-database>
 
-    <bean id="personDao" class="ru.zubov.db.JdbcPersonDao"
+    <bean id="personDao" class="ru.zubov.db.xml.JdbcPersonDao"
           p:dataSource-ref="dataSource"/>
     <context:property-placeholder location="settings.properties"/>
 </beans>

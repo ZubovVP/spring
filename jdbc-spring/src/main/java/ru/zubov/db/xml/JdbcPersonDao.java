@@ -1,14 +1,15 @@
-package ru.zubov.db;
+package ru.zubov.db.xml;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jdbc.core.JdbcTemplate;
+import ru.zubov.db.PersonDao;
 import ru.zubov.models.Contact;
 import ru.zubov.models.Model;
 import ru.zubov.models.Person;
 
-
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +88,41 @@ public class JdbcPersonDao implements PersonDao, InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void update(Person person) {
+        try {
+            this.jdbcTemplate.update(
+                    "UPDATE persons SET first_name = ?, last_name = ?, birth_date = ? WHERE id = ?",
+                    person.getFirst_name(), person.getLast_name(), person.getBirthDate(), person.getId());
+            this.dataSource.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void delete(int id) {
+        try {
+            this.jdbcTemplate.update("DELETE FROM persons WHERE id = ?", id);
+            this.dataSource.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void add(Person person) {
+        try {
+            this.jdbcTemplate.update(
+                    "INSERT INTO persons (first_name, last_name, birth_date) values (?, ?, ?)",
+                    person.getFirst_name(), person.getLast_name(), person.getBirthDate());
+            this.jdbcTemplate.getDataSource().getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void afterPropertiesSet() {
         if (dataSource == null) {
             throw new BeanCreationException("DataSource must be not null");
         }

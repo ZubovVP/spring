@@ -12,11 +12,15 @@ import java.util.List;
  * Date: 27.08.2021.
  */
 public interface PersonDao {
-
     String findLastNameById(int id);
 
     List<Person> findAll();
 
     List<Person> findAllWithDetail();
 
+    void update(Person person);
+
+    void delete(int id);
+
+    void add(Person person);
 }
